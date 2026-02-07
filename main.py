@@ -11,6 +11,7 @@ from src.soundGen import play_random_voiceline
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "assets", "audio")
+SPRITE_DIR = os.path.join(BASE_DIR, "assets", "characters")
 
 pygame.init()
 pygame.mixer.init()  # This is required to play sounds
@@ -61,21 +62,19 @@ class Game:
         self.combat_text_y_offset = 0
 
     def setup_data(self):
-        assets_path = "/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard"
-        
         self.roster = [
             Student(
                 "Cs Get Degrees", 100, 15,
                 "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.",
                 "C's Get Degrees! You passed!",
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2
             ),
             Student(
                 "4.0 Medallion", 100, 20,
                 "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
                 "Academic Excellence!",
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2,
                 scale=5,   
                 animation_speed=300
@@ -84,7 +83,7 @@ class Game:
                 "TA God", 100, 18,
                 "Special: Healing restores 50% more HP (Lab Snacks).",
                 "The lab is yours now!",
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2
             )
         ]
@@ -95,7 +94,7 @@ class Game:
                 "Logic is not O(1). You fail Data Structures.",
                 "Top Floor Devon",
                 bossId=1,
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/sridhar/standard/idle/down",
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
                 idle_frames=2,
                 scale=5,   
                 animation_speed=350
@@ -105,7 +104,7 @@ class Game:
                 "Compiling error... You fail Java 2.",
                 "Library Lawn",
                 bossId=2,
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
                 idle_frames=2
             ),
             Professor(
@@ -113,7 +112,7 @@ class Game:
                 "Model Underfitted. You fail ML.",
                 "The Clouds",
                 bossId=3,
-                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
                 idle_frames=2
             )
         ]
