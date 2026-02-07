@@ -57,16 +57,63 @@ class Game:
         self.combat_text_y_offset = 0
 
     def setup_data(self):
+        assets_path = "/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard"
+        
         self.roster = [
-            Student("Cs Get Degrees", 100, 15, "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.", "C's Get Degrees! You passed!"),
-            Student("4.0 Medallion", 100, 20, "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.", "Academic Excellence!"),
-            Student("TA God", 100, 18, "Special: Healing restores 50% more HP (Lab Snacks).", "The lab is yours now!")
+            Student(
+                "Cs Get Degrees", 100, 15,
+                "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.",
+                "C's Get Degrees! You passed!",
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                idle_frames=2
+            ),
+            Student(
+                "4.0 Medallion", 100, 20,
+                "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
+                "Academic Excellence!",
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                idle_frames=2,
+                scale=5,   
+                animation_speed=300
+            ),
+            Student(
+                "TA God", 100, 18,
+                "Special: Healing restores 50% more HP (Lab Snacks).",
+                "The lab is yours now!",
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                idle_frames=2
+            )
         ]
+        
         self.profs = [
-            Professor("Prof Sridhar", 150, 20, "Logic is not O(1). You fail Data Structures.", "Top Floor Devon", bossId=1),
-            Professor("Prof Maiti", 100, 15, "Compiling error... You fail Java 2.", "Library Lawn", bossId=2),
-            Professor("Prof Diochnos", 200, 25, "Model Underfitted. You fail ML.", "The Clouds", bossId=3)
+            Professor(
+                "Prof Sridhar", 150, 20,
+                "Logic is not O(1). You fail Data Structures.",
+                "Top Floor Devon",
+                bossId=1,
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/sridhar/standard/idle/down",
+                idle_frames=2,
+                scale=5,   
+                animation_speed=350
+            ),
+            Professor(
+                "Prof Maiti", 100, 15,
+                "Compiling error... You fail Java 2.",
+                "Library Lawn",
+                bossId=2,
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                idle_frames=2
+            ),
+            Professor(
+                "Prof Diochnos", 200, 25,
+                "Model Underfitted. You fail ML.",
+                "The Clouds",
+                bossId=3,
+                sprite_folder="/Users/briannapatten/Desktop/CtrlAltDefeat/Ctrl-Alt-Defeat/assets/kris/standard/idle/right",
+                idle_frames=2
+            )
         ]
+
 
 
     def load_questions(self):
@@ -78,9 +125,9 @@ class Game:
             self.questions[q["id"]].append(q)
 
     def draw_menu(self):
-        draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//3, self.title_font, OU_CRIMSON, True)
-        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2, 300, 60, OU_CRIMSON)
-        self.btn_help = Button("?", SCREEN_WIDTH - 80, 30, 50, 50, GRAY)
+        draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, OU_CRIMSON, True)
+        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 75, 300, 60, OU_CRIMSON)
+        self.btn_help = Button("?", 25, SCREEN_HEIGHT-80, 50, 50, GRAY)
         self.btn_quit = Button("QUIT", SCREEN_WIDTH - 150, SCREEN_HEIGHT - 80, 120, 50, GRAY)
         
         self.btn_start.draw(self.screen, self.font)
@@ -130,26 +177,38 @@ class Game:
             large_w, large_h = 450, 580
             x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
             
+            # Draw all other cards darkened
+            card_w, card_h = 350, 450
+            gap = (SCREEN_WIDTH - (3 * card_w)) // 4
+            for i, other in enumerate(self.roster):
+                if i == self.selected_idx:
+                    continue
+                ox = gap + i * (card_w + gap)
+                oy = 180
+                dark_color = (50, 50, 50)  # darkened gray
+                pygame.draw.rect(self.screen, dark_color, (ox, oy, card_w, card_h), border_radius=15)
+                pygame.draw.rect(self.screen, WHITE, (ox, oy, card_w, card_h), 2, border_radius=15)
+                pygame.draw.rect(self.screen, BLACK, (ox+50, oy+40, card_w-100, 200), border_radius=10)
+                draw_text(self.screen, other.name, ox + card_w//2, oy + 260, self.font, WHITE, True)
+
             # Focused Card
             pygame.draw.rect(self.screen, GOLD, (x, y, large_w, large_h), border_radius=15)
             pygame.draw.rect(self.screen, WHITE, (x, y, large_w, large_h), 4, border_radius=15)
-            
             pygame.draw.rect(self.screen, BLACK, (x+50, y+40, large_w-100, 280), border_radius=10)
             draw_text(self.screen, s.name, x + large_w//2, y + 340, self.title_font, WHITE, True)
-            
+
             draw_text(self.screen, "SPECIAL ABILITY:", x + 40, y + 420, self.font, GOLD)
             lines = wrap_text(s.ability_desc, self.small_font, large_w - 80)
             for j, line in enumerate(lines):
                 draw_text(self.screen, line, x + 40, y + 460 + (j*30), self.font, WHITE)
 
             self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60, OU_CRIMSON)
-            self.btn_back = Button("BACK", 50, SCREEN_HEIGHT - 100, 120, 50, GRAY)
             self.btn_confirm.draw(self.screen, self.font)
-            self.btn_back.draw(self.screen, self.font)
+
     def show_combat_text(self, text):
         self.combat_text = text
-        self.combat_text_timer = pygame.time.get_ticks() + 1000  # 1 second
-        self.combat_text_y_offset = 0
+        self.combat_text_timer = pygame.time.get_ticks() + 2000  # 1 second
+        self.combat_text_y_offset = -30
 
     def draw_battle(self):
         # Floor
@@ -218,15 +277,22 @@ class Game:
                 type="boss"
             )
             self.answer_btns = []
+            num_choices = len(self.current_q['choices'])
+            btn_width = 200
+            btn_spacing = 20
+            total_width = (num_choices * btn_width) + ((num_choices - 1) * btn_spacing)
+            start_x = (SCREEN_WIDTH - total_width) // 2
+
             for i, opt in enumerate(self.current_q['choices']):
-                btn = Button(opt, SCREEN_WIDTH - 500 + (i*220), SCREEN_HEIGHT - 130, 200, 50, OU_CRIMSON)
+                x = start_x + (i * (btn_width + btn_spacing))
+                btn = Button(opt, x, SCREEN_HEIGHT - 105, btn_width, 50, OU_CRIMSON)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
             draw_text(self.screen, self.battle_log, 80, SCREEN_HEIGHT - 120, self.font)
             heal_dis = self.player.hp >= self.player.max_hp
-            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - 480, SCREEN_HEIGHT - 130, 180, 50, GRAY)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 130, 180, 50, GRAY, disabled=heal_dis)
+            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - 480, SCREEN_HEIGHT - 105, 180, 50, GRAY)
+            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_dis)
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
@@ -306,16 +372,28 @@ class Game:
                     elif self.state == SELECT:
                         card_w = 350
                         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
-                        for i in range(3):
-                            if pygame.Rect(gap + i*(card_w+gap), 200, card_w, 450).collidepoint(m_pos):
-                                self.selected_idx = i
-                        if self.selected_idx is not None and self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
-                            self.player = self.roster[self.selected_idx]
-                            self.boss = self.profs[self.current_level]
-                            self.state = BATTLE
-                            self.battle_log = f"{self.boss.name} is ready to grade."
-                            intro_file = f"assets/audio//Prof{self.boss.bossId}Intro.wav"
-                            play_audio_clip(intro_file)
+
+                        # If no card selected, normal selection
+                        if self.selected_idx is None:
+                            for i in range(3):
+                                if pygame.Rect(gap + i*(card_w+gap), 180, card_w, 450).collidepoint(m_pos):
+                                    self.selected_idx = i
+
+                        else:
+                            # If card is selected, click logic
+                            large_w, large_h = 450, 580
+                            x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
+                            focused_rect = pygame.Rect(x, y, large_w, large_h)
+
+                            # Confirm button already handled
+                            if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
+                                self.player = self.roster[self.selected_idx]
+                                self.boss = self.profs[self.current_level]
+                                self.state = BATTLE
+                                self.battle_log = f"{self.boss.name} is ready to grade!"
+                            # Click outside the focused card cancels selection
+                            elif not focused_rect.collidepoint(m_pos):
+                                self.selected_idx = None
 
                     elif self.state == BATTLE:
                         self.handle_battle_click(m_pos)
@@ -326,7 +404,18 @@ class Game:
                             self.boss = self.profs[self.current_level]
                             self.state = BATTLE
                             self.battle_log = f"Onto Level {self.current_level+1}!"
-                        else: running = False
+                        elif self.state == WIN:
+                            # Final victory - click to quit
+                            running = False
+                        else:
+                            # LOSS - return to menu
+                            self.state = MENU
+                            self.current_level = 0
+                            self.selected_idx = None
+                            self.show_question = False
+                            self.player = None
+                            self.boss = None
+                            self.battle_log = ""
 
             if self.state == MENU: self.draw_menu()
             elif self.state == SELECT: self.draw_character_select()
@@ -336,7 +425,7 @@ class Game:
                 draw_text(self.screen, "Click to Continue", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
             elif self.state == LOSS:
                 draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
-                draw_text(self.screen, "Click to Exit", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
+                draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
 
             pygame.display.flip()
             self.clock.tick(60)
