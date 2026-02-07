@@ -5,6 +5,11 @@ from src.constants import *
 from src.entities import Student, Professor
 from src.ui import Button, draw_text, draw_speech_bubble, wrap_text
 from src.dataGen import load_questions
+from src.soundGen import play_audio_clip
+from src.soundGen import play_random_voiceline
+
+pygame.init()
+pygame.mixer.init()  # This is required to play sounds
 
 class Game:
     def __init__(self):
@@ -308,6 +313,7 @@ class Game:
                     # Pull a random question for this boss
                     self.show_question = True
                     self.current_q = self.q_manager.get_random_question(self.boss.bossId)
+                    play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
 
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
                 amt, msg = self.player.get_heal_amount()
@@ -318,7 +324,8 @@ class Game:
                 
                 self.show_question = True
                 self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-
+                play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                
         else:
             for btn in self.answer_btns:
                 if btn.is_clicked(mouse_pos):
