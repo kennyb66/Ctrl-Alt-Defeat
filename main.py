@@ -42,6 +42,10 @@ class Game:
         self.show_question = False
         self.current_q = None
 
+        self.combat_text = ""
+        self.combat_text_timer = 0
+        self.combat_text_y_offset = 0
+
     def setup_data(self):
         self.roster = [
             Student("Cs Get Degrees", 100, 15, "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.", "C's Get Degrees! You passed!"),
@@ -98,35 +102,51 @@ class Game:
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
 
     def draw_character_select(self):
-        draw_text(self.screen, "SELECT YOUR STUDENT", SCREEN_WIDTH//2, 80, self.title_font, OU_CREAM, True)
+        draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, 60, self.title_font, OU_CREAM, True)
         
         card_w, card_h = 350, 450
         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
-        
-        for i, s in enumerate(self.roster):
-            x = gap + i * (card_w + gap)
-            y = 200
-            rect = pygame.Rect(x, y, card_w, card_h)
-            
-            is_hovered = rect.collidepoint(pygame.mouse.get_pos())
-            color = GOLD if (self.selected_idx == i or is_hovered) else GRAY
-            
-            pygame.draw.rect(self.screen, color, rect, border_radius=15)
-            pygame.draw.rect(self.screen, WHITE, rect, 4 if self.selected_idx == i else 2, border_radius=15)
-            
-            # Character Portrait Placeholder
-            pygame.draw.rect(self.screen, BLACK, (x+50, y+40, card_w-100, 200), border_radius=10)
-            draw_text(self.screen, s.name, x + card_w//2, y + 260, self.font, WHITE, True)
-            
-            if self.selected_idx == i:
-                draw_text(self.screen, "SPECIAL ABILITY:", x + 20, y + 310, self.font, GOLD)
-                lines = wrap_text(s.ability_desc, self.small_font, card_w - 40)
-                for j, line in enumerate(lines):
-                    draw_text(self.screen, line, x + 20, y + 340 + (j*25), self.small_font, WHITE)
+        m_pos = pygame.mouse.get_pos()
 
-        if self.selected_idx is not None:
-            self.btn_confirm = Button("CONFIRM ENROLLMENT", SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT - 120, 400, 60, OU_CRIMSON)
+        if self.selected_idx is None:
+            for i, s in enumerate(self.roster):
+                x = gap + i * (card_w + gap)
+                y = 180
+                rect = pygame.Rect(x, y, card_w, card_h)
+                is_hovered = rect.collidepoint(m_pos)
+                
+                color = GOLD if is_hovered else GRAY
+                pygame.draw.rect(self.screen, color, rect, border_radius=15)
+                pygame.draw.rect(self.screen, WHITE, rect, 2, border_radius=15)
+                
+                pygame.draw.rect(self.screen, BLACK, (x+50, y+40, card_w-100, 200), border_radius=10)
+                draw_text(self.screen, s.name, x + card_w//2, y + 260, self.font, WHITE, True)
+        else:
+            # CENTER AND ENLARGE LOGIC
+            s = self.roster[self.selected_idx]
+            large_w, large_h = 450, 580
+            x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
+            
+            # Focused Card
+            pygame.draw.rect(self.screen, GOLD, (x, y, large_w, large_h), border_radius=15)
+            pygame.draw.rect(self.screen, WHITE, (x, y, large_w, large_h), 4, border_radius=15)
+            
+            pygame.draw.rect(self.screen, BLACK, (x+50, y+40, large_w-100, 280), border_radius=10)
+            draw_text(self.screen, s.name, x + large_w//2, y + 340, self.title_font, WHITE, True)
+            
+            draw_text(self.screen, "SPECIAL ABILITY:", x + 40, y + 420, self.font, GOLD)
+            lines = wrap_text(s.ability_desc, self.small_font, large_w - 80)
+            for j, line in enumerate(lines):
+                draw_text(self.screen, line, x + 40, y + 460 + (j*30), self.font, WHITE)
+
+            self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60, OU_CRIMSON)
+            self.btn_back = Button("BACK", 50, SCREEN_HEIGHT - 100, 120, 50, GRAY)
             self.btn_confirm.draw(self.screen, self.font)
+            self.btn_back.draw(self.screen, self.font)
+    def show_combat_text(self, text):
+        self.combat_text = text
+        self.combat_text_timer = pygame.time.get_ticks() + 1000  # 1 second
+        self.combat_text_y_offset = 0
 
     def draw_battle(self):
         # Floor
@@ -151,8 +171,49 @@ class Game:
         pygame.draw.rect(self.screen, BLACK, ui_rect, border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
+        # --- Combat Text Animation ---
+        if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
+            # float upward
+            self.combat_text_y_offset -= 0.5
+            
+            # fade out
+            time_left = self.combat_text_timer - pygame.time.get_ticks()
+            alpha = max(0, min(255, int(255 * (time_left / 1000))))
+            
+            # BIG dramatic font
+            big_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.06), bold=True)
+            txt_surface = big_font.render(self.combat_text, True, GOLD)
+            txt_surface.set_alpha(alpha)
+
+            # position above player
+            text_x = 250 + 75 - txt_surface.get_width() // 2
+            text_y = SCREEN_HEIGHT - 600 + self.combat_text_y_offset
+
+            self.screen.blit(txt_surface, (text_x, text_y))
+
+        if self.player.current_speech and pygame.time.get_ticks() < self.player.speech_timer:
+            '''# Note: We pass a negative width to draw_speech_bubble or adjust X 
+            # so the bubble tail points to the player.
+            # Using your ui.py logic:
+            draw_speech_bubble(
+                self.screen,
+                self.player.current_speech,
+                SCREEN_WIDTH - 750,
+                SCREEN_HEIGHT - 600,
+                self.font,
+                type="player"
+            )'''
+
+            
         if self.show_question:
-            draw_speech_bubble(self.screen, self.current_q['q'], SCREEN_WIDTH - 450, SCREEN_HEIGHT - 600, self.font)
+            draw_speech_bubble(
+                self.screen,
+                self.current_q['q'],
+                SCREEN_WIDTH - 450,
+                SCREEN_HEIGHT - 650,
+                self.font,
+                type="boss"
+            )
             self.answer_btns = []
             for i, opt in enumerate(self.current_q['options']):
                 btn = Button(opt, SCREEN_WIDTH - 500 + (i*220), SCREEN_HEIGHT - 130, 200, 50, OU_CRIMSON)
@@ -171,15 +232,25 @@ class Game:
             if self.btn_atk and self.btn_atk.is_clicked(mouse_pos):
                 dmg, msg = self.player.calculate_attack()
                 self.boss.hp -= dmg
-                self.battle_log = f"{msg} Dealt {dmg} damage!"
+
+                self.show_combat_text(msg)
+                self.battle_log = f"You dealt {dmg} damage!"
+
+                #or self.show_combat_text(msg) ## self.battle_log = f"You dealt {dmg} damage!"
+
+                
                 if self.boss.hp <= 0: self.state = WIN
                 else:
                     self.show_question = True
                     self.current_q = random.choice(self.questions[self.boss.name])
+
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
-                amt = self.player.get_heal_amount()
+                amt, msg = self.player.get_heal_amount()
                 self.player.hp = min(self.player.max_hp, self.player.hp + amt)
-                self.battle_log = f"Office Hours! Restored {amt} HP."
+              #  self.player.say(msg) # Player says they healed
+                self.show_combat_text(msg)
+
+                
                 self.show_question = True
                 self.current_q = random.choice(self.questions[self.boss.name])
         else:

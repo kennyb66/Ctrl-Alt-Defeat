@@ -53,7 +53,7 @@ class Button:
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos) and not self.disabled
 
-def draw_speech_bubble(screen, text, x, y, font, width=350):
+def draw_speech_bubble(screen, text, x, y, font, width=350, type = "boss"):
     """Draws a speech bubble that scales based on the length of the text."""
     lines = wrap_text(text, font, width - 40)
     line_height = font.get_linesize()
@@ -63,9 +63,15 @@ def draw_speech_bubble(screen, text, x, y, font, width=350):
     bubble_rect = pygame.Rect(x - width, y - bubble_height - 30, width, bubble_height)
     
     # Draw bubble tail pointing to the boss sprite
-    pygame.draw.polygon(screen, WHITE, [
-        (x - 40, y - 30), (x - 60, y - 30), (x - 20, y)
-    ])
+    if type == "boss":
+        pygame.draw.polygon(screen, WHITE, [
+            (x - 40, y - 30), (x - 60, y - 30), (x - 20, y)
+        ])
+    else:
+        pygame.draw.polygon(screen, WHITE, [
+            (x + 40, y - 30), (x + 60, y - 30), (x + 20, y)
+        ])
+
     
     # Draw bubble body
     pygame.draw.rect(screen, WHITE, bubble_rect, border_radius=15)

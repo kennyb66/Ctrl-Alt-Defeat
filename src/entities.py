@@ -51,24 +51,34 @@ class Student(AnimatedEntity):
         super().__init__(name, hp, attack_power, GREEN)
         self.ability_desc = ability_desc
         self.win_msg = win_msg
+        # Speech bubble logic
+        self.current_speech = ""
+        self.speech_timer = 0
+
+    def say(self, text):
+        """Sets the text and starts a 2-second timer."""
+        self.current_speech = text
+        self.speech_timer = pygame.time.get_ticks() + 2000 
 
     def calculate_attack(self):
         self.state = ACTION
         roll = random.random()
         crit_chance = 0.20 if self.name == "4.0 Medallion" else 0.05
-        glance_chance = 0.15
         
         if roll < crit_chance:
-            return int(self.attack_power * 1.5), "CRITICAL HIT! (The Curve)"
-        elif roll < crit_chance + glance_chance:
-            return int(self.attack_power * 0.5), "Glancing hit..."
-        else:
-            return self.attack_power, "Direct Hit!"
+            msg = "CRITICAL HIT! (The Curve effect!)"
+            return int(self.attack_power * 1.5), msg
+        elif roll < crit_chance + 0.15:
+            msg = "Glancing hit... barely passed."
+            return int(self.attack_power * 0.5), msg
+        return self.attack_power, "Direct Hit!"
 
     def get_heal_amount(self):
         self.state = ACTION
         base = 25
-        return int(base * 1.5) if self.name == "TA God" else base
+        if self.name == "TA God":
+            return int(base * 1.5), "SPECIAL: Lab snacks! +50% Healing!"
+        return base, f"Studied hard. Restored {base} HP."
 
 class Professor(AnimatedEntity):
     def __init__(self, name, hp, attack_power, loss_msg, level_name):
