@@ -8,6 +8,10 @@ from src.dataGen import load_questions
 from src.soundGen import play_audio_clip
 from src.soundGen import play_random_voiceline
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+AUDIO_DIR = os.path.join(BASE_DIR, "assets", "audio")
+
 pygame.init()
 pygame.mixer.init()  # This is required to play sounds
 
@@ -391,6 +395,9 @@ class Game:
                                 self.boss = self.profs[self.current_level]
                                 self.state = BATTLE
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
+                                intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
+                                play_audio_clip(intro_file)
+
                             # Click outside the focused card cancels selection
                             elif not focused_rect.collidepoint(m_pos):
                                 self.selected_idx = None
