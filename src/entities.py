@@ -2,41 +2,73 @@ import pygame
 import random
 import math
 from src.constants import *
+import os
 
 class AnimatedEntity:
-    def __init__(self, name, hp, attack_power, color):
+    def __init__(self, name, hp, attack_power, color, sprite_folder=None,
+                 idle_frames=2, action_frames=1, scale=3, animation_speed=400):
         self.name = name
         self.hp = hp
         self.max_hp = hp
         self.attack_power = attack_power
         self.color = color
-        
-        # Animation logic
+
         self.state = IDLE
         self.frame_index = 0
         self.last_update = pygame.time.get_ticks()
-        self.animation_speed = 150 # ms per frame
-        self.offset_y = 0 # For the "idle bounce"
+        self.animation_speed = animation_speed
+        self.offset_y = 0
+
+        # Frames: dictionary keyed by state
+        self.frames = {IDLE: [], ACTION: []}
+
+        # Load idle frames from folder
+        if sprite_folder:
+            # Sort files to ensure proper frame order
+            files = sorted([f for f in os.listdir(sprite_folder) if f.endswith(".png")])
+            if not files:
+                raise ValueError(f"No PNGs found in {sprite_folder}")
+            for f in files:
+                path = os.path.join(sprite_folder, f)
+                img = pygame.image.load(path).convert_alpha()
+                # scale it bigger
+                w, h = img.get_size()
+                img = pygame.transform.scale(img, (w * scale, h * scale))
+                self.frames[IDLE].append(img)            
+            # Placeholder empty action frames
+            self.frames[ACTION] = [pygame.Surface(self.frames[IDLE][0].get_size(), pygame.SRCALPHA) for _ in range(action_frames)]
 
     def update_animation(self):
         now = pygame.time.get_ticks()
-        # Idle Bounce (sine wave)
         if self.state == IDLE:
-            self.offset_y = math.sin(now / 200) * 10
+            #this was a "bounce" for rectangles to mimic idling
+           ## self.offset_y = math.sin(now / 200) * 10
             if now - self.last_update > self.animation_speed:
-                self.frame_index = (self.frame_index + 1) % 3 # 3 idle frames
+                if self.frames[IDLE]:
+                    self.frame_index = (self.frame_index + 1) % len(self.frames[IDLE])
                 self.last_update = now
-        # Action Animation
         elif self.state == ACTION:
-            if now - self.last_update > 100: # Action is faster
-                self.frame_index += 1
-                if self.frame_index >= 5: # 5 action frames
-                    self.frame_index = 0
-                    self.state = IDLE
+            if now - self.last_update > 100:
+                if self.frames[ACTION]:
+                    self.frame_index = (self.frame_index + 1) % len(self.frames[ACTION])
                 self.last_update = now
+                if self.frame_index == 0:
+                    self.state = IDLE
+
 
     def draw(self, screen, x, y):
         self.update_animation()
+        if self.frames.get(self.state) and len(self.frames[self.state]) > 0:
+            frame = self.frames[self.state][self.frame_index]
+            #screen.blit(frame, (x, y + self.offset_y)) #offset_y was for rectangle bounce 
+            screen.blit(frame, (x, y))
+        else:
+            #fallback rect if frames fail
+            rect_height = 200 if self.state == IDLE else 180
+            color = self.color if self.state == IDLE else WHITE
+            pygame.draw.rect(screen, color, (x, y + self.offset_y, 150, rect_height), border_radius=10)
+
+            '''
         # Drawing a rectangle as a placeholder for the sprite
         # In a real game, you'd blit: screen.blit(self.frames[self.state][self.frame_index], (x, y + self.offset_y))
         rect_height = 200 if self.state == IDLE else 180
@@ -45,15 +77,25 @@ class AnimatedEntity:
         # Eye level indicator to see "bouncing"
         pygame.draw.rect(screen, BLACK, (x + 30, y + self.offset_y + 40, 20, 20))
         pygame.draw.rect(screen, BLACK, (x + 100, y + self.offset_y + 40, 20, 20))
+        '''
 
 class Student(AnimatedEntity):
-    def __init__(self, name, hp, attack_power, ability_desc, win_msg):
-        super().__init__(name, hp, attack_power, GREEN)
+    def __init__(self, name, hp, attack_power, ability_desc, win_msg,
+                 sprite_folder=None, idle_frames=2, action_frames=1,
+                 scale=3, animation_speed=600):
+        # Pass everything to AnimatedEntity
+        super().__init__(name, hp, attack_power, GREEN,
+                         sprite_folder=sprite_folder,
+                         idle_frames=idle_frames,
+                         action_frames=action_frames,
+                         scale=scale,
+                         animation_speed=animation_speed)
+
         self.ability_desc = ability_desc
         self.win_msg = win_msg
-        # Speech bubble logic
         self.current_speech = ""
         self.speech_timer = 0
+
 
     def say(self, text):
         """Sets the text and starts a 2-second timer."""
@@ -81,8 +123,16 @@ class Student(AnimatedEntity):
         return base, f"Studied hard. Restored {base} HP."
 
 class Professor(AnimatedEntity):
-    def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId):
-        super().__init__(name, hp, attack_power, OU_CRIMSON)
+    def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId,
+                 sprite_folder=None, idle_frames=2, action_frames=1,
+                 scale=3, animation_speed=600):
+        super().__init__(name, hp, attack_power, OU_CRIMSON,
+                         sprite_folder=sprite_folder,
+                         idle_frames=idle_frames,
+                         action_frames=action_frames,
+                         scale=scale,
+                         animation_speed=animation_speed)
         self.loss_msg = loss_msg
         self.level_name = level_name
         self.bossId = bossId
+
