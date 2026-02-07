@@ -71,7 +71,8 @@ class Student(AnimatedEntity):
         return int(base * 1.5) if self.name == "TA God" else base
 
 class Professor(AnimatedEntity):
-    def __init__(self, name, hp, attack_power, loss_msg, level_name):
+    def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId):
         super().__init__(name, hp, attack_power, OU_CRIMSON)
         self.loss_msg = loss_msg
         self.level_name = level_name
+        self.bossId = bossId

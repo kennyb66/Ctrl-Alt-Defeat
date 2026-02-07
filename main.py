@@ -4,6 +4,7 @@ import os
 from src.constants import *
 from src.entities import Student, Professor
 from src.ui import Button, draw_text, draw_speech_bubble, wrap_text
+from src.dataGen import load_questions
 
 class Game:
     def __init__(self):
@@ -18,6 +19,10 @@ class Game:
         self.font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.025))
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
+        
+        # Initialize question manager
+        from src.dataGen import QuestionManager
+        self.q_manager = QuestionManager()
         
         self.state = MENU
         self.show_how_to_play = False
@@ -49,26 +54,19 @@ class Game:
             Student("TA God", 100, 18, "Special: Healing restores 50% more HP (Lab Snacks).", "The lab is yours now!")
         ]
         self.profs = [
-            Professor("Prof Maiti", 100, 15, "Compiling error... You fail Java 2.", "Library Lawn"),
-            Professor("Prof Sridhar", 150, 20, "Logic is not O(1). You fail Data Structures.", "Top Floor Devon"),
-            Professor("Prof Diochnos", 200, 25, "Model Underfitted. You fail ML.", "The Clouds")
+            Professor("Prof Sridhar", 150, 20, "Logic is not O(1). You fail Data Structures.", "Top Floor Devon", bossId=1),
+            Professor("Prof Maiti", 100, 15, "Compiling error... You fail Java 2.", "Library Lawn", bossId=2),
+            Professor("Prof Diochnos", 200, 25, "Model Underfitted. You fail ML.", "The Clouds", bossId=3)
         ]
 
+
     def load_questions(self):
-        self.questions = {
-            "Prof Maiti": [
-                {"q": "Is 'String' a primitive type in Java?", "a": "No", "options": ["Yes", "No"]},
-                {"q": "Which keyword is used for inheritance in Java?", "a": "extends", "options": ["implements", "extends"]}
-            ],
-            "Prof Sridhar": [
-                {"q": "Worst case time complexity for searching a BST?", "a": "O(n)", "options": ["O(log n)", "O(n)"]},
-                {"q": "Does a Stack use FIFO or LIFO?", "a": "LIFO", "options": ["FIFO", "LIFO"]}
-            ],
-            "Prof Diochnos": [
-                {"q": "Does a high learning rate cause overshoot?", "a": "Yes", "options": ["Yes", "No"]},
-                {"q": "Is K-Means supervised or unsupervised?", "a": "Unsupervised", "options": ["Supervised", "Unsupervised"]}
-            ]
-        }
+        self.questions = {}
+        all_questions = load_questions()
+        for q in all_questions:
+            if q["id"] not in self.questions:
+                self.questions[q["id"]] = []
+            self.questions[q["id"]].append(q)
 
     def draw_menu(self):
         draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//3, self.title_font, OU_CRIMSON, True)
@@ -152,9 +150,9 @@ class Game:
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
         if self.show_question:
-            draw_speech_bubble(self.screen, self.current_q['q'], SCREEN_WIDTH - 450, SCREEN_HEIGHT - 600, self.font)
+            draw_speech_bubble(self.screen, self.current_q['text'], SCREEN_WIDTH - 450, SCREEN_HEIGHT - 600, self.font)
             self.answer_btns = []
-            for i, opt in enumerate(self.current_q['options']):
+            for i, opt in enumerate(self.current_q['choices']):
                 btn = Button(opt, SCREEN_WIDTH - 500 + (i*220), SCREEN_HEIGHT - 130, 200, 50, OU_CRIMSON)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
@@ -172,21 +170,29 @@ class Game:
                 dmg, msg = self.player.calculate_attack()
                 self.boss.hp -= dmg
                 self.battle_log = f"{msg} Dealt {dmg} damage!"
-                if self.boss.hp <= 0: self.state = WIN
+                if self.boss.hp <= 0:
+                    self.state = WIN
                 else:
+                    # Pull a random question for this boss
                     self.show_question = True
-                    self.current_q = random.choice(self.questions[self.boss.name])
+                    self.current_q = self.q_manager.get_random_question(self.boss.bossId)
+
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
                 amt = self.player.get_heal_amount()
                 self.player.hp = min(self.player.max_hp, self.player.hp + amt)
                 self.battle_log = f"Office Hours! Restored {amt} HP."
+                # Pull a random question for this boss
                 self.show_question = True
-                self.current_q = random.choice(self.questions[self.boss.name])
+                self.current_q = self.q_manager.get_random_question(self.boss.bossId)
+
         else:
             for btn in self.answer_btns:
                 if btn.is_clicked(mouse_pos):
-                    # handle_dodge logic integrated
-                    if btn.text == self.current_q['a']:
+                    # Get the correct answer from the JSON
+                    correct_index = self.current_q['correct']
+                    correct_answer = self.current_q['choices'][correct_index]
+
+                    if btn.text == correct_answer:
                         self.battle_log = "CORRECT! You dodged the grade deduction!"
                     else:
                         if self.player.name == "Cs Get Degrees" and random.random() < 0.25:
@@ -195,8 +201,15 @@ class Game:
                             dmg = self.boss.attack_power
                             self.player.hp -= dmg
                             self.battle_log = f"INCORRECT! Lost {dmg} HP!"
+
+                    # Done showing the question
                     self.show_question = False
-                    if self.player.hp <= 0: self.state = LOSS
+
+                    # Check if the player lost all HP
+                    if self.player.hp <= 0:
+                        self.state = LOSS
+
+
 
     def run(self):
         running = True
