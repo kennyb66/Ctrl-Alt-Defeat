@@ -85,6 +85,33 @@ class Game:
         self.boss_walk_speed = 6
 
 
+        # Hallway Variables
+        self.player_world_x = 100
+        self.hallway_width = SCREEN_WIDTH * 2  # Make it long
+        self.camera_x = 0
+        self.selected_door = None
+        
+        # Load Door Assets
+        try:
+            self.door_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door.png")).convert_alpha()
+            self.door_upclose_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door_cracked.png")).convert_alpha()
+            # Scale them appropriately
+            self.door_img = pygame.transform.scale(self.door_img, (200, 350))
+            self.door_upclose_img = pygame.transform.scale(self.door_upclose_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        except:
+            # Fallback if images don't exist yet
+            self.door_img = pygame.Surface((200, 350))
+            self.door_img.fill(GOLD)
+            self.door_upclose_img = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            self.door_upclose_img.fill(GRAY)
+
+        # Define 3 Door locations
+        self.door_locations = [
+            {"x": 600, "level": 0, "rect": None},
+            {"x": 1200, "level": 1, "rect": None},
+            {"x": 1800, "level": 2, "rect": None}
+        ]
+
 
     def setup_data(self):
         self.roster = [
@@ -92,7 +119,7 @@ class Game:
                 "Cs Get Degrees", 100, 15,
                 "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.",
                 "C's Really Do Get Degrees! You passed!",
-                sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
+                sprite_folder=os.path.join(SPRITE_DIR, "swi", "standard", "idle", "right"),
                 idle_frames=2
             ),
             Student(
@@ -118,7 +145,7 @@ class Game:
                 "Logic is not O(1). You fail Data Structures.",
                 "Top Floor Devon",
                 bossId=1,
-                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
                 idle_frames=2
             ),
             Professor(
@@ -126,7 +153,7 @@ class Game:
                 "Compiling error... You fail Java 2.",
                 "Library Lawn",
                 bossId=2,
-                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
                 idle_frames=2
             ),
             Professor(
@@ -134,7 +161,7 @@ class Game:
                 "Model Underfitted. You fail ML.",
                 "The Clouds",
                 bossId=3,
-                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
+                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
                 idle_frames=2
             )
         ]
@@ -147,7 +174,90 @@ class Game:
             if q["id"] not in self.questions:
                 self.questions[q["id"]] = []
             self.questions[q["id"]].append(q)
+    # src/main.py
 
+    
+
+    # main.py
+
+    def draw_hallway(self):
+        self.screen.fill((20, 20, 25))
+        
+        # 1. DRAW FLOOR (Relative to camera)
+        # This creates a floor that spans the whole hallway width
+        pygame.draw.rect(self.screen, (45, 45, 50), (-self.camera_x, SCREEN_HEIGHT - 200, self.hallway_width, 200))
+        
+        # 2. DRAW DOORS
+        for i, door in enumerate(self.door_locations):
+            screen_x = door["x"] - self.camera_x
+            
+            if -200 < screen_x < SCREEN_WIDTH:
+                # CHECK PROXIMITY: If player is within 100 pixels of the door
+                distance = abs(self.player_world_x - door["x"])
+                is_near = distance < 100
+                
+                # Choose image based on proximity
+                # door_upclose_img is actually your "cracked" version here
+                img_to_use = self.door_upclose_img if is_near else self.door_img
+                
+                # If it's the cracked version, we need to scale it down for the hallway view
+                if is_near:
+                    display_img = pygame.transform.scale(img_to_use, (200, 350))
+                else:
+                    display_img = img_to_use
+
+                # Darken if locked
+                if i > self.current_level:
+                    display_img = display_img.copy()
+                    display_img.fill((40, 40, 40), special_flags=pygame.BLEND_RGB_MULT)
+                
+                self.screen.blit(display_img, (screen_x, SCREEN_HEIGHT - 550))
+                door["rect"] = pygame.Rect(screen_x, SCREEN_HEIGHT - 550, 200, 350)
+
+        # 3. DRAW PLAYER (Centered on screen)
+        self.player.draw(self.screen, (SCREEN_WIDTH // 2) - 75, SCREEN_HEIGHT - 450)
+    def draw_door_view(self):
+        # Full screen background
+        bg = pygame.transform.scale(self.door_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.screen.blit(bg, (0, 0))        
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        self.screen.blit(overlay, (0,0))
+        # Details
+        boss = self.profs[self.selected_door["level"]]
+        draw_text(self.screen, f"OFFICE OF {boss.name.upper()}", SCREEN_WIDTH//2, 100, self.title_font, GOLD, center=True)
+        draw_text(self.screen, boss.level_name, SCREEN_WIDTH//2, 180, self.font, WHITE, center=True)
+
+        self.btn_confirm = Button("CHALLENGE", SCREEN_WIDTH//2 - 210, SCREEN_HEIGHT - 150, 200, 60, OU_CRIMSON)
+        self.btn_back = Button("BACK", SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT - 150, 200, 60, GRAY)
+        
+        self.btn_confirm.draw(self.screen, self.font)
+        self.btn_back.draw(self.screen, self.font)
+
+    def update_hallway(self):
+        keys = pygame.key.get_pressed()
+        speed = 10
+        
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+            self.player_world_x -= speed
+            self.player.facing = "left"
+            self.player.set_state(WALK)
+        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+            self.player_world_x += speed
+            self.player.facing = "right"
+            self.player.set_state(WALK)
+        else:
+            self.player.set_state(IDLE)
+
+        # FIX: Boundaries. 100 is the start, hallway_width is the end.
+        # This prevents the "walking into darkness" issue.
+        self.player_world_x = max(100, min(self.player_world_x, self.hallway_width - 100))
+        
+        # Camera centering logic
+        self.camera_x = self.player_world_x - (SCREEN_WIDTH // 2)
+        self.camera_x = max(0, min(self.camera_x, self.hallway_width - SCREEN_WIDTH))
+        self.player.update()
+        
     def start_fade(self, next_state):
 
         self.fading = True
@@ -275,7 +385,6 @@ class Game:
         if self.boss_entering:
             self.boss.set_state(WALK)
 
-            self.boss.set_state(WALK)
             self.boss_x -= self.boss_walk_speed
 
             if self.boss_x <= self.boss_target_x:
@@ -491,6 +600,14 @@ class Game:
                         if self.btn_help and self.btn_help.is_clicked(m_pos): self.show_how_to_play = True
                         if self.btn_quit and self.btn_quit.is_clicked(m_pos): running = False
                     elif self.state == SELECT:
+                        if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
+                            self.player = self.roster[self.selected_idx]
+                            self.player.facing = "right"
+                            self.player.set_state(IDLE)
+                            self.player_world_x = 100 
+                            
+                            # GO TO HALLWAY
+                            self.start_fade(HALLWAY)
                         card_w = 350
                         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
 
@@ -505,57 +622,77 @@ class Game:
                             large_w, large_h = 450, 580
                             x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
                             focused_rect = pygame.Rect(x, y, large_w, large_h)
-
+                            '''
                             # Confirm button already handled
                             if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
                                 self.player = self.roster[self.selected_idx]
                                 self.boss = self.profs[self.current_level]
                                 self.start_fade(BATTLE)
                                 self.boss_entering = True
+                                
                                 self.boss_x = SCREEN_WIDTH + 200
 
 
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
                                 intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
                                 self.sound.play_voice(intro_file)
-
+                            
                             # Click outside the focused card cancels selection
                             elif not focused_rect.collidepoint(m_pos):
                                 self.selected_idx = None
+                            '''
+                            if not focused_rect.collidepoint(m_pos) and not self.btn_confirm.is_clicked(m_pos):
+                                self.selected_idx = None
 
-                    elif self.state == BATTLE:
-                        self.handle_battle_click(m_pos)
-                    elif self.state in [WIN, LOSS]:
-                        if self.state == WIN and self.current_level < 2:
-                            self.current_level += 1
-                            self.player.hp = self.player.max_hp
-                            
-                            self.player.override_frames = None
-                            self.player.override_index = 0
-                            self.player.set_state(IDLE)
-                            
-                            self.boss = self.profs[self.current_level]
-                            self.victory_stage = 0
+                    elif self.state == HALLWAY:
+                        for door in self.door_locations:
+                            if door["rect"] and door["rect"].collidepoint(m_pos) and door["level"] <= self.current_level:
+                                self.selected_door = door
+                                self.state = DOOR_VIEW
+                    elif self.state == DOOR_VIEW:
+                        if self.btn_confirm.is_clicked(m_pos):
+                            self.boss = self.profs[self.selected_door["level"]]
+                            self.start_fade(BATTLE)
+                            self.player.facing = "right"
+                            self.boss.facing = "left"
+                            self.boss.hp = self.boss.max_hp
+                            self.boss.set_state(IDLE)
+                    
                             self.start_fade(BATTLE)
                             self.boss_entering = True
                             self.boss_x = SCREEN_WIDTH + 200
-                            self.battle_log = f"Onto Level {self.current_level+1}!"
-                        elif self.state == WIN:
-                            # Final victory - click to quit
-                            running = False
-                        else:
-                            # LOSS - return to menu
-                            self.start_fade(MENU)
+                        elif self.btn_back.is_clicked(m_pos):
+                            self.state = HALLWAY
+                    elif self.state == BATTLE:
+                        self.handle_battle_click(m_pos)
+                    elif self.state in [WIN, LOSS]:
+                        # Update progress if they won
+                        if self.state == WIN and self.current_level < 2:
+                            self.current_level += 1
+                            self.battle_log = f"Level {self.current_level + 1} Unlocked!"
+                        elif self.state == LOSS:
+                            self.battle_log = "Try again, student!"
 
-                            self.current_level = 0
-                            self.selected_idx = None
-                            self.show_question = False
-                            self.player = None
-                            self.boss = None
-                            self.battle_log = ""
+                        # Reset Player stats and animations
+                        self.player.hp = self.player.max_hp
+                        self.player.override_frames = None
+                        self.player.override_index = 0
+                        self.player.set_state(IDLE)
+                        
+                        # Clean up boss/battle variables
+                        self.victory_stage = 0
+                        self.boss_entering = True
+                        self.show_question = False
+                        
+                        # THE BIG MOVE: Always back to the Hallway
+                        self.start_fade(HALLWAY)
 
             if self.state == MENU: self.draw_menu()
             elif self.state == SELECT: self.draw_character_select()
+            elif self.state == HALLWAY: 
+                self.update_hallway()
+                self.draw_hallway()
+            elif self.state == DOOR_VIEW: self.draw_door_view()
             elif self.state == BATTLE: self.draw_battle()
             elif self.state == WIN:
                 draw_text(self.screen, self.player.win_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, GREEN, True)

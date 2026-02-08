@@ -13,60 +13,61 @@ class AnimatedEntity:
         self.attack_power = attack_power
         self.color = color
         self.scale = scale
+        self.idle_frames = idle_frames
+        self.action_frames = action_frames
         self.state = IDLE
 
         self.frame_index = 0
         self.last_update = pygame.time.get_ticks()
         self.animation_speed = animation_speed
         self.offset_y = 0
-
-        # Frames: dictionary keyed by state
-        self.frames = {IDLE: [], ACTION: [], WALK: []}
-
-
-        # Load idle frames from folder
+        self.override_frames = None
+        self.override_index = 0
+        self.override_speed = 120
+        self.override_loop = False # This was the specific one causing your last error
+        self.freeze_last_frame = False
+        self.is_dead = False
+        
+        self.facing = "right" 
+        # Ensure sprite_folder exists before trying to get base_path
         if sprite_folder:
-            # Sort files to ensure proper frame order
-            files = sorted([f for f in os.listdir(sprite_folder) if f.endswith(".png")])
-            if not files:
-                raise ValueError(f"No PNGs found in {sprite_folder}")
-            for f in files:
-                path = os.path.join(sprite_folder, f)
-                img = pygame.image.load(path).convert_alpha()
-                # scale it bigger
-                w, h = img.get_size()
-                img = pygame.transform.scale(img, (w * scale, h * scale))
-                self.frames[IDLE].append(img)   
+            self.base_sprite_folder = sprite_folder
 
-                # ---- Load WALK frames automatically ----
-            walk_folder = sprite_folder.replace("idle", "walk")
-            if os.path.exists(walk_folder):
-                walk_files = sorted([f for f in os.listdir(walk_folder) if f.endswith(".png")])
-                for f in walk_files:
-                    path = os.path.join(walk_folder, f)
-                    img = pygame.image.load(path).convert_alpha()
-                    w, h = img.get_size()
-                    img = pygame.transform.scale(img, (w * scale, h * scale))
-                    self.frames[WALK].append(img)
-                        
-            # Placeholder empty action frames
-            self.frames[ACTION] = [pygame.Surface(self.frames[IDLE][0].get_size(), pygame.SRCALPHA) for _ in range(action_frames)]
-
-            self.base_sprite_folder = sprite_folder   # idle/right etc
-            self.idle_frames = idle_frames
-
-            self.anim_frames = self.load_frames(sprite_folder, idle_frames)
+            self.base_path = os.path.dirname(os.path.dirname(sprite_folder)) 
+            self.all_frames = {
+                "right": {IDLE: [], WALK: [], ACTION: []},
+                "left": {IDLE: [], WALK: [], ACTION: []}
+            }
+            # This handles all the heavy lifting of loading PNGs
+            self.load_all_directions()
+            
+            # Fill ACTION frames with empty surfaces if they weren't loaded
+            for d in ["left", "right"]:
+                if self.all_frames[d][IDLE]:
+                    size = self.all_frames[d][IDLE][0].get_size()
+                    if not self.all_frames[d][ACTION]:
+                        self.all_frames[d][ACTION] = [pygame.Surface(size, pygame.SRCALPHA) for _ in range(action_frames)]
+            
             self.current_frame = 0
             self.last_frame_time = pygame.time.get_ticks()
 
-            # NEW animation override system
-            self.override_frames = None
-            self.override_index = 0
-            self.override_speed = 120
-            self.override_loop = False
-            self.freeze_last_frame = False
-            self.is_dead = False
+        # Animation state systems
+        self.override_frames = None
+        self.override_index = 0
+        self.freeze_last_frame = False
+        self.is_dead = False
 
+          
+    def load_all_directions(self):
+        for d in ["left", "right"]:
+            # Load Idle
+            path = os.path.join(self.base_path, "idle", d)
+            if os.path.exists(path):
+                self.all_frames[d][IDLE] = self.load_frames(path, self.idle_frames)
+            # Load Walk
+            path = os.path.join(self.base_path, "walk", d)
+            if os.path.exists(path):
+                self.all_frames[d][WALK] = self.load_frames(path, self.idle_frames) # assuming same frame count
     def load_frames(self, folder, frame_count):
         frames = []
         for i in range(1, frame_count + 1):
@@ -75,17 +76,22 @@ class AnimatedEntity:
             frames.append(img)
         return frames
 
-    def play_animation(self, subfolder, direction, frame_count, speed=120, loop=False, freeze_last=False):
-        # Example: idle/right → hurt/up
+    def play_animation(self, action_name, direction, frame_count, freeze_last=False):        # Example: idle/right → hurt/up
         base = os.path.dirname(os.path.dirname(self.base_sprite_folder))
-        path = os.path.join(base, subfolder, direction)
-
-        self.override_frames = self.load_frames(path, frame_count)
-        self.override_index = 0
-        self.override_speed = speed
-        self.override_loop = loop
-        self.freeze_last_frame = freeze_last
-        self.last_frame_time = pygame.time.get_ticks()
+        anim_path = os.path.join(base, action_name, direction)
+    
+        if os.path.exists(anim_path):
+            frames = []
+            files = sorted([f for f in os.listdir(anim_path) if f.endswith(".png")])
+            for f in files:
+                img = pygame.image.load(os.path.join(anim_path, f)).convert_alpha()
+                w, h = img.get_size()
+                img = pygame.transform.scale(img, (int(w * self.scale), int(h * self.scale)))
+                frames.append(img)
+            
+            self.override_frames = frames
+            self.override_index = 0
+            self.freeze_last_frame = freeze_last
 
     def set_state(self, new_state):
         if self.state != new_state:
@@ -108,13 +114,8 @@ class AnimatedEntity:
             if now - self.last_frame_time > self.override_speed:
                 self.override_index += 1
                 self.last_frame_time = now
-
-                # animation finished
                 if self.override_index >= len(self.override_frames):
-                    if self.freeze_last_frame:
-                        self.override_index = len(self.override_frames) - 1
-                        return  # Stay frozen on last frame
-                    elif self.override_loop:
+                    if self.override_loop:
                         self.override_index = 0
                     else:
                         self.override_frames = None
@@ -122,24 +123,22 @@ class AnimatedEntity:
             return
         
         # State-based animation (IDLE or WALK)
-        current_frames = self.frames.get(self.state, self.frames[IDLE])
+        current_dir_frames = self.all_frames[self.facing]
+        current_frames = current_dir_frames.get(self.state, current_dir_frames[IDLE])
         if now - self.last_frame_time > self.animation_speed:
-            self.current_frame = (self.current_frame + 1) % len(current_frames)
+            if len(current_frames) > 0:
+                self.current_frame = (self.current_frame + 1) % len(current_frames)
             self.last_frame_time = now
-
+    def update(self):
+        self.update_animation()
     def draw(self, screen, x, y):
         self.update_animation()
 
         if self.override_frames:
             frame = self.override_frames[self.override_index]
         else:
-            # Use frames based on current state
-            current_frames = self.frames.get(self.state, self.frames[IDLE])
-            
-            # Safety check to prevent index errors
-            if self.current_frame >= len(current_frames):
-                self.current_frame = 0
-            
+            current_dir_frames = self.all_frames[self.facing]
+            current_frames = current_dir_frames.get(self.state, current_dir_frames[IDLE])
             frame = current_frames[self.current_frame]
 
         screen.blit(frame, (x, y))
@@ -204,7 +203,7 @@ class Student(AnimatedEntity):
 
         base = 35
         if self.name == "TA God":
-            return int(base * 2), "SPECIAL: Lab snacks! Double Healing!", True
+            return int(base * 2), "SPECIAL:\nLab snacks! Double Healing!", True
         return base, f"Studied hard. Restored {base} HP.", False
 
 class Professor(AnimatedEntity):
