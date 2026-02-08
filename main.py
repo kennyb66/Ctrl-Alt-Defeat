@@ -437,6 +437,8 @@ class Game:
             elif self.state == LOSS:
                 draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
                 draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
+                self.player.hp = self.player.max_hp
+                self.boss.hp = self.boss.max_hp
 
             pygame.display.flip()
             self.clock.tick(60)
