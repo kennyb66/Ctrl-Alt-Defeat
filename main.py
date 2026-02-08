@@ -378,6 +378,23 @@ class Game:
         
         self.player.update()
         
+    def reset_game(self):
+        """Reset game state variables when returning to menu"""
+        self.show_exit_prompt = False
+        self.selected_idx = None
+        self.player_world_x = int(SCREEN_WIDTH * 0.2)
+        self.camera_x = 0
+        self.player = None
+        self.boss = None
+        self.show_question = False
+        self.current_q = None
+        self.battle_log = ""
+        self.combat_text = ""
+        self.combat_text_timer = 0
+        self.victory_stage = 0
+        self.boss_entering = False
+        self.selected_door = None
+
     def start_fade(self, next_state):
 
         self.fading = True
@@ -394,6 +411,9 @@ class Game:
         # reached full black → switch state → fade back in
         if self.fade_alpha >= 255:
             self.fade_alpha = 255
+            # Reset game state when transitioning to MENU
+            if self.next_state == MENU:
+                self.reset_game()
             self.state = self.next_state
             self.fade_direction = -1
 
@@ -567,12 +587,12 @@ class Game:
                 int(large_h * 0.54),
             )
             self.draw_character_preview(s, preview_rect)
-            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, WHITE, True)
+            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, BLACK, True)
 
             draw_text(self.screen, "SPECIAL ABILITY:", x + int(large_w * 0.09), y + int(large_h * 0.72), self.small_font, GOLD)
             lines = wrap_text(s.ability_desc, self.small_font, int(large_w * 0.82))
             for j, line in enumerate(lines):
-                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, WHITE)
+                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, BLACK)
 
             self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
             self.btn_confirm.draw(self.screen, self.font)
