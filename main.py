@@ -342,6 +342,23 @@ class Game:
         
         self.player.update()
         
+    def reset_game(self):
+        """Reset game state variables when returning to menu"""
+        self.show_exit_prompt = False
+        self.selected_idx = None
+        self.player_world_x = int(SCREEN_WIDTH * 0.2)
+        self.camera_x = 0
+        self.player = None
+        self.boss = None
+        self.show_question = False
+        self.current_q = None
+        self.battle_log = ""
+        self.combat_text = ""
+        self.combat_text_timer = 0
+        self.victory_stage = 0
+        self.boss_entering = False
+        self.selected_door = None
+
     def start_fade(self, next_state):
 
         self.fading = True
@@ -358,6 +375,9 @@ class Game:
         # reached full black → switch state → fade back in
         if self.fade_alpha >= 255:
             self.fade_alpha = 255
+            # Reset game state when transitioning to MENU
+            if self.next_state == MENU:
+                self.reset_game()
             self.state = self.next_state
             self.fade_direction = -1
 
