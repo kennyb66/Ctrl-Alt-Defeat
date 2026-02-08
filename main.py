@@ -59,6 +59,42 @@ class Game:
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
         
+
+        # Load Battle Backgrounds
+        self.battle_backgrounds = []
+        try:
+            for i in range(1, 4):  # For 3 professors
+                bg_path = os.path.join(BASE_DIR, "assets", "backgrounds", f"battle_bg_{i}.png")
+                bg = pygame.image.load(bg_path).convert()
+                # Get original dimensions
+                orig_w, orig_h = bg.get_size()
+                # Calculate scale to cover screen while maintaining aspect ratio
+                scale = max(SCREEN_WIDTH / orig_w, SCREEN_HEIGHT / orig_h)
+                new_w = int(orig_w * scale)
+                new_h = int(orig_h * scale)
+                bg = pygame.transform.smoothscale(bg, (new_w, new_h))
+                # Center the image
+                x_offset = (SCREEN_WIDTH - new_w) // 2
+                y_offset = (SCREEN_HEIGHT - new_h) // 2
+                # Create a surface the size of the screen
+                final_bg = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                final_bg.fill((0, 0, 0))  # Fill with black for any gaps
+                final_bg.blit(bg, (x_offset, y_offset))
+                bg = final_bg
+                self.battle_backgrounds.append(bg)
+        except Exception as e:
+            print(f"Error loading battle backgrounds: {e}")
+            # Create fallback backgrounds with different colors
+            self.battle_backgrounds = [
+                pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT)),
+                pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT)),
+                pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            ]
+            self.battle_backgrounds[0].fill((40, 30, 50))   # Dark purple for level 1
+            self.battle_backgrounds[1].fill((30, 40, 60))   # Dark blue for level 2
+            self.battle_backgrounds[2].fill((50, 30, 30))   # Dark red for level 3
+
+
         self.state = MENU
         self.last_music_state = None  # Track which state's music is currently playing
         self.show_how_to_play = False
@@ -108,7 +144,7 @@ class Game:
         # Boss entrance animation
         self.boss_entering = False
         self.boss_x = SCREEN_WIDTH + int(SCREEN_WIDTH * 0.1)
-        self.boss_target_x = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.23)
+        self.boss_target_x = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.30)
         self.boss_walk_speed = int(SCREEN_WIDTH * 0.003)
 
 
@@ -169,7 +205,6 @@ class Game:
                 "The lab is yours now!",
                 sprite_folder=os.path.join(SPRITE_DIR, "ken", "standard", "idle", "right"),
                 idle_frames=2,
-                scale = 4
             )
         ]
         
@@ -256,7 +291,8 @@ class Game:
         # trying to fix the Cs Get Degrees error
         player_draw_x = self.player_screen_x - int(SCREEN_WIDTH * 0.04)
         player_draw_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.50)
-        self.player.draw(self.screen, player_draw_x, player_draw_y)
+        self.player.update_animation()  # Update animation
+        self.draw_character_with_shadow(self.player, player_draw_x, player_draw_y)
         if self.show_exit_prompt:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))
@@ -547,6 +583,46 @@ class Game:
         self.combat_text_timer = pygame.time.get_ticks() + 2000
         self.combat_text_y_offset = -30
 
+    def draw_character_with_shadow(self, character, x, y):
+        # Shadow offset and color
+        shadow_offset = 5
+        shadow_color = (0, 0, 0, 150)  # Semi-transparent black
+        
+        # Get the current frame to draw
+        if character.override_frames:
+            if character.override_index >= len(character.override_frames):
+                character.override_index = len(character.override_frames) - 1
+            frame = character.override_frames[character.override_index]
+        else:
+            current_dir_frames = character.all_frames[character.facing]
+            current_frames = current_dir_frames.get(character.state, current_dir_frames[IDLE])
+            
+            if not current_frames or character.current_frame >= len(current_frames):
+                character.current_frame = 0
+                if not current_frames:
+                    current_frames = current_dir_frames[IDLE]
+            
+            if len(current_frames) == 0:
+                return  # Can't draw without frames
+            
+            frame = current_frames[character.current_frame]
+        
+        # Create shadow surface
+        shadow = pygame.Surface(frame.get_size(), pygame.SRCALPHA)
+        shadow.fill((0, 0, 0, 0))  # Transparent
+        
+        # Draw shadow in 8 directions (or 4 for simpler shadow)
+        for dx, dy in [(-shadow_offset, 0), (shadow_offset, 0), 
+                    (0, -shadow_offset), (0, shadow_offset),
+                    (-shadow_offset, -shadow_offset), (shadow_offset, shadow_offset),
+                    (-shadow_offset, shadow_offset), (shadow_offset, -shadow_offset)]:
+            shadow.blit(frame, (0, 0))
+            # Apply shadow color with alpha
+            shadow.fill(shadow_color, special_flags=pygame.BLEND_RGBA_MULT)
+            self.screen.blit(shadow, (x + dx, y + dy))
+        
+        # Draw the actual character on top
+        self.screen.blit(frame, (x, y))
 
     def draw_battle(self):
         boss_music_id = self.boss.bossId  # the boss for this level
@@ -556,25 +632,58 @@ class Game:
             self.sound.play_music(os.path.join(SFX_DIR, f"Boss{boss_music_id}_music.wav"), volume=0.1)
             self.current_boss_music_id = boss_music_id
 
-        # Floor
-        pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.3), SCREEN_WIDTH, int(SCREEN_HEIGHT * 0.3)))
-        ui_margin = int(SCREEN_WIDTH * 0.026)
+        bg_index = self.boss.bossId - 1  # Convert boss ID (1,2,3) to index (0,1,2)
+        if 0 <= bg_index < len(self.battle_backgrounds):
+            self.screen.blit(self.battle_backgrounds[bg_index], (0, 0))
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 100))  # Adjust the last value (0-255) for darkness
+            self.screen.blit(overlay, (0, 0))
 
-        self.player.draw(self.screen, int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.55))
-        boss_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.65)
+        floor_height = int(SCREEN_HEIGHT * 0.3)
+        floor_y = SCREEN_HEIGHT - floor_height
+        if self.boss.bossId == 1:
+    # Level 1: Grass texture
+            grass_path = os.path.join(BASE_DIR, "assets", "backgrounds", "grass.png")
+            try:
+                grass = pygame.image.load(grass_path).convert_alpha()
+                grass = pygame.transform.scale(grass, (SCREEN_WIDTH, floor_height))
+                self.screen.blit(grass, (0, floor_y + SCREEN_HEIGHT*0.03))
+            except:
+                # Fallback: green ground
+                floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
+                floor_surface.fill((34, 139, 34, 200))  # Forest green
+                self.screen.blit(floor_surface, (0, floor_y))
+        elif self.boss.bossId == 2:
+            # Level 2: Darker ground
+            floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
+            floor_surface.fill((20, 20, 25, 200))  # Dark blue-gray
+            self.screen.blit(floor_surface, (0, floor_y))
+        else:  # Level 3
+            # Level 3: Darkest ground
+            floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
+            floor_surface.fill((15, 10, 10, 220))  # Almost black with red tint
+            self.screen.blit(floor_surface, (0, floor_y))
+
+        # Draw player with shadow
+        player_x = int(SCREEN_WIDTH * 0.08)
+        player_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.55)
+        self.player.update_animation()  # Update animation
+        self.draw_character_with_shadow(self.player, player_x, player_y)
+
+        boss_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.63)
 
         # ----- Boss entrance walking -----
         if self.boss_entering:
             self.boss.set_state(WALK)
-
             self.boss_x -= self.boss_walk_speed
-
             if self.boss_x <= self.boss_target_x:
                 self.boss_x = self.boss_target_x
                 self.boss_entering = False
                 self.boss.set_state(IDLE)
 
-        self.boss.draw(self.screen, self.boss_x, boss_y)
+        # Draw boss with shadow
+        self.boss.update_animation()  # Update animation
+        self.draw_character_with_shadow(self.boss, self.boss_x, boss_y)
 
         btn_width = int(SCREEN_WIDTH * 0.12)
         btn_height = int(SCREEN_HEIGHT * 0.055)
@@ -592,6 +701,7 @@ class Game:
         text_y = int(SCREEN_HEIGHT * 0.02)
 
         # Player HP (left)
+        ui_margin = int(SCREEN_WIDTH * 0.026)
         pygame.draw.rect(self.screen, OU_CRIMSON, (ui_margin, hp_y, hp_bar_w, hp_bar_h))
         pygame.draw.rect(self.screen, GREEN, (ui_margin, hp_y, hp_bar_w * p_hp_ratio, hp_bar_h))
         draw_text(self.screen, f"{self.player.name}: {player_hp_display} HP", ui_margin, text_y, self.font)
@@ -620,6 +730,7 @@ class Game:
 
         
         # --- Combat Text Animation ---
+        # --- Combat Text Animation ---
         if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
             # float upward
             self.combat_text_y_offset -= 0.5
@@ -633,17 +744,22 @@ class Game:
             lines = self.combat_text.split('\n')
             line_height = big_font.get_height()
             
-            # Render each line
-
-            
+            # Render each line with outline
             for i, line in enumerate(lines):
-                txt_surface = big_font.render(line, True, self.combat_text_color)
-                txt_surface.set_alpha(alpha)
-                
-                # Position from left side of screen, offset each line
-                text_x = ui_margin
+                text_x = ui_margin + int(SCREEN_WIDTH * 0.075)
                 text_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.6) + self.combat_text_y_offset + (i * line_height)
                 
+                # Draw white outline (8 directions)
+                for dx, dy in [(-2, -2), (0, -2), (2, -2),
+                            (-2, 0),           (2, 0),
+                            (-2, 2),  (0, 2),  (2, 2)]:
+                    outline_surface = big_font.render(line, True, WHITE)
+                    outline_surface.set_alpha(alpha)
+                    self.screen.blit(outline_surface, (text_x + dx, text_y + dy))
+                
+                # Draw main text on top
+                txt_surface = big_font.render(line, True, self.combat_text_color)
+                txt_surface.set_alpha(alpha)
                 self.screen.blit(txt_surface, (text_x, text_y))
 
      #   if self.player.current_speech and pygame.time.get_ticks() < self.player.speech_timer:
@@ -665,7 +781,7 @@ class Game:
                 self.screen,
                 self.current_q['text'],
                 SCREEN_WIDTH - int(SCREEN_WIDTH * 0.23),
-                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.65),
+                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.60),
                 self.font,
                 type="boss"
             )

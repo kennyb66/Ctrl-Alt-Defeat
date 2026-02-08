@@ -213,7 +213,7 @@ class Student(AnimatedEntity):
         base = 35
         if self.name == "TA God":
             return int(base * 2), "SPECIAL:\nLab snacks! Double Healing!", True
-        return base, f"Studied hard. Restored {base} HP.", False
+        return base, f"Studied hard.\nRestored {base} HP.", False
 
 class Professor(AnimatedEntity):
     def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId,
