@@ -199,6 +199,8 @@ class Game:
             {"x": int(self.hallway_width * p), "level": i, "rect": None}
             for i, p in enumerate(door_positions)
         ]
+        # Track which doors the player was previously near (for sound playback on re-entry)
+        self.doors_previously_near = set()
         
         # Load Door Assets
         try:
@@ -319,6 +321,9 @@ class Game:
       
         
         # 2. DRAW DOORS
+        # Track which doors are currently near
+        doors_currently_near = set()
+        
         for i, door in enumerate(self.door_locations):
             screen_x = door["x"] - self.camera_x
             
@@ -326,12 +331,20 @@ class Game:
                 # CHECK PROXIMITY: If player is within 100 pixels of the door
                 distance = abs(self.player_world_x - door["x"])
                 is_near = distance < int(SCREEN_WIDTH * 0.05)
-
-             
+                is_unlocked = i <= self.current_level
+                
+                # Track this door as currently near
+                if is_near and is_unlocked:
+                    doors_currently_near.add(i)
+                
+                # Play door opening sound when player TRANSITIONS from not-near to near (wasn't near before, is now)
+                if is_near and is_unlocked and i not in self.doors_previously_near:
+                    door_sound_path = os.path.join(SFX_DIR, "dragon-studio-opening-door-sfx-454240.mp3")
+                    self.sound.play_sfx(door_sound_path, volume=0.5)
                 
                 # Choose image based on proximity
                 # door_upclose_img is actually your "cracked" version here
-                if is_near and i <= self.current_level:
+                if is_near and is_unlocked:
                     img_to_use = self.door_upclose_img
                 else:
                     img_to_use = self.door_img
@@ -353,6 +366,8 @@ class Game:
                 self.screen.blit(display_img, (screen_x, door_y))
                 door["rect"] = pygame.Rect(screen_x, door_y, self.door_w, self.door_h)
 
+        # Update tracking for next frame
+        self.doors_previously_near = doors_currently_near
 
         # trying to fix the Cs Get Degrees error
         player_draw_x = self.player_screen_x - int(SCREEN_WIDTH * 0.04)
@@ -467,6 +482,7 @@ class Game:
         self.victory_stage = 0
         self.boss_entering = False
         self.selected_door = None
+        self.doors_previously_near = set()  # Reset door tracking when returning to menu
 
     def start_fade(self, next_state):
 

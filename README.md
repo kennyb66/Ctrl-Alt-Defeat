@@ -2,24 +2,28 @@
 
 
 ## Description
-####  This game was developed during Hacklahoma 2026, with a theme of "Use Technology to Achieve New Heights." This is a 2D fighting game featuring some of your favorite OU proffessors as adversaries in a battle of the minds. Enhance your knowledge of computer science and test your skills by answering the questions from the proffessors. 
+**Ctrl-Alt-Defeat** is a 2D fighting game developed during **Hacklahoma 2026** and draws inspiration from the theme of "Use Technology to Achieve New Heights." Progress through the game by testing your computer science knowledge against the OU professors. 
 
+### Features:
+- 2D style fighting mechanics
+- Computer science based trivia
+- Custom AI voice-lines generated through [Eleven Labs](https://elevenlabs.io/)
 
 
 ## How To Run
 
-### Python 3.12 
-#### In order to run this game you will need to install a python version: [python 3.12](https://www.python.org/) or lower. 
+### Install Python (version 3.12 or earlier recommended)
+In order to run this game you will need to install a python version: [https://www.python.org](https://www.python.org/) or earlier. 
 
-### Pygame 
+### Install Pygame 
 Next you will need to download pygame by entering the command below
-```
+```bash
 pip install pygame
 ```
 
-###
-Finally, running the command below should allow you to run the game
-```
+### Running The Program
+From the project directory run:
+```bash
 python main.py
 ```
 
