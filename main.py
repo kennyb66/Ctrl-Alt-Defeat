@@ -21,13 +21,13 @@ pygame.mixer.init()  # This is required to play sounds
 class Game:
     def __init__(self):
         self.sound = SoundManager()
-        pygame.init()
+
         # Center the window on all platforms (Windows, macOS, Linux)
         os.environ['SDL_VIDEO_CENTERED'] = '1'
         
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
-       
+
         self.flash_timer = 0
         # Get actual screen dimensions after fullscreen is set (fixes Windows centering)
         global SCREEN_WIDTH, SCREEN_HEIGHT
@@ -48,7 +48,7 @@ class Game:
         # Load custom cursor image
         self.custom_cursor = None
         cursor_path = os.path.join(BASE_DIR, "assets", "ui", "mouse cursor.png")
-        
+
         if os.path.exists(cursor_path):
             try:
                 self.custom_cursor = pygame.image.load(cursor_path)
@@ -57,7 +57,8 @@ class Game:
                 pygame.mouse.set_visible(False)  # Hide default cursor
             except Exception as e:
                 print(f"Error loading cursor: {e}")
-        
+        self.cursor_rect = self.custom_cursor.get_rect() if self.custom_cursor else None
+
         # Initialize question manager
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
@@ -81,7 +82,7 @@ class Game:
         self.loop_w = self.hallway_loop.get_width()        
 
         self.background_assets = {}
-        bg_names = ["title", "lost_sridhar", "lost_maiti", "lost_dioch", "class", "win_kris", "win_shri", "win_ken"]
+        bg_names = ["title", "lost_sridhar", "lost_maiti", "lost_dioch", "class", "win_kris", "win_shri", "win_ken", "end"]
         for name in bg_names:
             path = os.path.join(BASE_DIR, "assets", "backgrounds", f"{name}.png")
             try:
@@ -468,6 +469,7 @@ class Game:
         
     def reset_game(self):
         """Reset game state variables when returning to menu"""
+        self.current_level = 0
         self.show_exit_prompt = False
         self.selected_idx = None
         self.player_world_x = int(SCREEN_WIDTH * 0.2)
@@ -765,7 +767,34 @@ class Game:
         
         # Draw the actual character on top
         self.screen.blit(frame, (x, y))
+    def draw_total_win(self):
+        # 1. Background
+        self.screen.blit(self.background_assets["end"], (0, 0))
+        
+        # 2. OU_CREAM Header Box
+        header_w, header_h = int(SCREEN_WIDTH * 0.5), 80
+        header_rect = pygame.Rect(SCREEN_WIDTH//2 - header_w//2, 40, header_w, header_h)
+        
+        # Draw semi-transparent background for the box
+        s = pygame.Surface((header_w, header_h), pygame.SRCALPHA)
+        # Using OU_CREAM with 220 alpha for a solid yet soft look
+        s.fill((249, 244, 227, 220)) 
+        self.screen.blit(s, (header_rect.x, header_rect.y))
+        
+        # Border for the box
+        pygame.draw.rect(self.screen, BLACK, header_rect, 3, border_radius=5)
+        
+        # Congrats Text inside the box
+        draw_text(self.screen, "DEGREE CONFERRED: C.S. COMPLETED!", 
+                  SCREEN_WIDTH//2, 69, self.medium_font, BLACK, True)
 
+        # 3. Exit Button
+        btn_w, btn_h = 300, 60
+        self.btn_exit_win = Button("RETURN TO TITLE", 
+                                    SCREEN_WIDTH//2 - btn_w//2, 
+                                    SCREEN_HEIGHT - 100, 
+                                    btn_w, btn_h, OU_CREAM)
+        self.btn_exit_win.draw(self.screen, self.font)
     def draw_battle(self):
         boss_music_id = self.boss.bossId  # the boss for this level
         if getattr(self, 'current_boss_music_id', None) != boss_music_id:
@@ -773,10 +802,7 @@ class Game:
             self.sound.clear_music()
             self.sound.play_music(os.path.join(SFX_DIR, f"Boss{boss_music_id}_music.wav"), volume=0.1)
             self.current_boss_music_id = boss_music_id
-
-
-       
-
+    
         bg_index = self.boss.bossId - 1  # Convert boss ID (1,2,3) to index (0,1,2)
         if 0 <= bg_index < len(self.battle_backgrounds):
             self.screen.blit(self.battle_backgrounds[bg_index], (0, 0))
@@ -789,7 +815,7 @@ class Game:
          # Box dimensions
         box_w, box_h = int(SCREEN_WIDTH * 0.225), int(SCREEN_HEIGHT * 0.09)
         padding = 15
-        
+
         # Check for Low Health (30%)
         is_low_health = self.player and self.player.hp <= (self.player.max_hp * 0.3)
         
@@ -945,20 +971,6 @@ class Game:
                 txt_surface.set_alpha(alpha)
                 self.screen.blit(txt_surface, (text_x, text_y))
 
-     #   if self.player.current_speech and pygame.time.get_ticks() < self.player.speech_timer:
-            '''# Note: We pass a negative width to draw_speech_bubble or adjust X 
-            # so the bubble tail points to the player.
-            # Using your ui.py logic:
-            draw_speech_bubble(
-                self.screen,
-                self.player.current_speech,
-                SCREEN_WIDTH - 750,
-                SCREEN_HEIGHT - 600,
-                self.font,
-                type="player"
-            )'''
-
-            
         if self.show_question:
             draw_speech_bubble(
                 self.screen,
@@ -988,16 +1000,19 @@ class Game:
                 SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12),
                 self.font
             )
-            
+            current_time = pygame.time.get_ticks()
             heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
-
+            is_locked = (current_time - getattr(self, 'battle_start_time', 0)) < 3000
+            atk_color = (128, 128, 128) if is_locked else GOLD
             self.btn_atk = Button(
                 "ATTACK",
                 SCREEN_WIDTH - btn_margin - 2*btn_width - btn_spacing,
                 SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105),
                 btn_width,
                 btn_height,
-                GRAY
+                (255, 0, 0),
+                atk_color,
+                disabled=is_locked
             )
 
             self.btn_heal = Button(
@@ -1006,7 +1021,7 @@ class Game:
                 SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105),
                 btn_width,
                 btn_height,
-                GRAY,
+                GREEN,
                 disabled=heal_disabled
             )
             self.btn_atk.draw(self.screen, self.font)
@@ -1119,7 +1134,7 @@ class Game:
                         else:
                             dmg = self.boss.attack_power
                             self.player.hp -= dmg
-                            self.boss.play_animation("spellcast", "down", 7)
+                            self.boss.play_animation("spellcast", "down", 6)
                             self.player.play_animation("hurt", "up", 3)
 
                             self.battle_log = f"INCORRECT! Lost {dmg} HP!"
@@ -1136,7 +1151,28 @@ class Game:
                         self.is_player_victory = False
                         self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
                         self.sound.play_voice(os.path.join(SFX_DIR, f"lose_sound.wav"), volume=0.2)
+    def transition_to_battle(self):
+        self.battle_start_time = pygame.time.get_ticks()
+        self.boss = self.profs[self.selected_door["level"]]
+        self.start_fade(BATTLE)
+        intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
+        if self.boss.bossId == 2 or self.boss.bossId == 3:
+            self.sound.play_voice(intro_file, volume = 0.3)  # Play a random voiceline for the boss when they enter"
+        else:
+            self.sound.play_voice(intro_file)
+        self.player.facing = "right"
+        self.boss.facing = "left"
+        self.boss.hp = self.boss.max_hp
+        self.player.set_state(IDLE)
+        self.boss.set_state(IDLE)
 
+        self.boss.override_frames = None
+        self.boss.override_index = 0
+        self.boss.freeze_last_frame = False
+
+        self.start_fade(BATTLE)
+        self.boss_entering = True
+        self.boss_x = SCREEN_WIDTH + 200
     def run(self):
         running = True
         while running:
@@ -1155,11 +1191,18 @@ class Game:
                     self.is_player_victory = True
                     self.sound.clear_music()
                     self.sound.play_voice(os.path.join(SFX_DIR, f"win-sound.wav"), volume=0.3)
-                
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+                        # 1. Continue from Door View to Battle
+                        if self.state == DOOR_VIEW:
+                            # We trigger the same logic as the Confirm Button
+                            self.transition_to_battle() 
+                            
+                    
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.show_how_to_play:
                         self.show_how_to_play = False
                     elif self.state == MENU:
+                        self.reset_game()
                         if self.btn_start and self.btn_start.is_clicked(m_pos): self.state = SELECT
                         if self.btn_help and self.btn_help.is_clicked(m_pos): self.show_how_to_play = True
                         if self.btn_quit and self.btn_quit.is_clicked(m_pos): running = False
@@ -1191,53 +1234,44 @@ class Game:
                                     self.state = DOOR_VIEW
                     elif self.state == DOOR_VIEW:
                         if self.btn_confirm.is_clicked(m_pos):
-                            self.boss = self.profs[self.selected_door["level"]]
-                            self.start_fade(BATTLE)
-                            intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
-                            if self.boss.bossId == 2 or self.boss.bossId == 3:
-                                self.sound.play_voice(intro_file, volume = 0.3)  # Play a random voiceline for the boss when they enter"
-                            else:
-                                self.sound.play_voice(intro_file)
-                            self.player.facing = "right"
-                            self.boss.facing = "left"
-                            self.boss.hp = self.boss.max_hp
-                            self.player.set_state(IDLE)
-                            self.boss.set_state(IDLE)
-
-                            self.boss.override_frames = None
-                            self.boss.override_index = 0
-                            self.boss.freeze_last_frame = False
-                    
-                            self.start_fade(BATTLE)
-                            self.boss_entering = True
-                            self.boss_x = SCREEN_WIDTH + 200
+                            self.transition_to_battle()
                         elif self.btn_back.is_clicked(m_pos):
                             self.state = HALLWAY
                     elif self.state == BATTLE:
                         self.handle_battle_click(m_pos)
+                    
                     elif self.state in [WIN, LOSS]:
-                        # Update progress if they won
-                        if self.state == WIN and self.current_level < 2:
+                        if self.state == WIN:
+                            # 1. CHECK FOR TOTAL VICTORY FIRST
+                            if self.current_level >= 2:
+                                
+                                self.start_fade(TOTAL_WIN)
+                                # We skip everything else and go straight to graduation
+                                continue 
+                            
+                            # 2. NORMAL LEVEL WIN
                             self.current_level += 1
                             self.battle_log = f"Level {self.current_level + 1} Unlocked!"
-                        #add somethign to let me press "P" and simulate a level win for demo purposes
-                        elif self.state == LOSS:
+                        
+                        else: # THIS IS THE LOSS CASE
                             self.battle_log = "Try again, student!"
 
-                        # Reset Player stats and animations
+                        # 3. SHARED RESET LOGIC (For normal wins and all losses)
                         self.player.hp = self.player.max_hp
                         self.player.override_frames = None
                         self.player.override_index = 0
                         self.player.set_state(IDLE)
                         
-                        # Clean up boss/battle variables
                         self.victory_stage = 0
                         self.boss_entering = True
                         self.show_question = False
                         
-                        # THE BIG MOVE: Always back to the Hallway
+                        # Return to the hallway to try again or go to the next door
                         self.start_fade(HALLWAY)
-
+                    elif self.state == TOTAL_WIN:
+                        if hasattr(self, 'btn_exit_win') and self.btn_exit_win.is_clicked(m_pos):
+                            self.reset_game()
+                            self.start_fade(MENU)
             if self.state == MENU: self.draw_menu()
             elif self.state == SELECT: self.draw_character_select()
             elif self.state == HALLWAY: 
@@ -1247,12 +1281,13 @@ class Game:
             elif self.state == BATTLE: self.draw_battle()
             elif self.state == WIN:
                 win_bg = "title" # Default fallback
-                if self.player.name == "4.0 Medallion":
-                    win_bg = "win_kris"
-                elif self.player.name == "Cs Get Degrees":
-                    win_bg = "win_shri"
-                elif self.player.name == "TA God":
-                    win_bg = "win_ken"
+                if self.player:
+                    if self.player.name == "4.0 Medallion":
+                        win_bg = "win_kris"
+                    elif self.player.name == "Cs Get Degrees":
+                        win_bg = "win_shri"
+                    elif self.player.name == "TA God":
+                        win_bg = "win_ken"
                 # Draw the specific background
                 self.screen.blit(self.background_assets[win_bg], (0, 0))
 
@@ -1263,6 +1298,9 @@ class Game:
 
                 # Draw the win messages
                 #draw_text(self.screen, self.player.win_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 10, self.font, GREEN, True)
+            elif self.state == TOTAL_WIN:
+                self.draw_total_win()
+                
             elif self.state == LOSS:
                 self.draw_loss()
                 self.player.hp = self.player.max_hp
@@ -1270,7 +1308,6 @@ class Game:
 
             self.handle_fade()
             
-            pygame.mouse.set_visible(False)  # Hide default cursor elsewhere
             # Draw custom cursor
             if self.custom_cursor:
                 cursor_rect = self.custom_cursor.get_rect(topleft=m_pos)
