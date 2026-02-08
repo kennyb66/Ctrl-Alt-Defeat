@@ -979,8 +979,8 @@ class Game:
             pygame.draw.rect(self.screen, BLACK, ui_rect.inflate(0, 10), border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
-        scaled_scroll = pygame.transform.scale(self.ui_scroll, (ui_rect.width, ui_rect.height))
-        self.screen.blit(scaled_scroll, (ui_rect.x, ui_rect.y))
+        #scaled_scroll = pygame.transform.scale(self.ui_scroll, (ui_rect.width, ui_rect.height))
+        #self.screen.blit(scaled_scroll, (ui_rect.x, ui_rect.y))
      
         if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
             # float upward
