@@ -634,7 +634,7 @@ class Game:
         
         title = "CHOOSE YOUR STUDENT"
         tx = SCREEN_WIDTH // 2
-        ty = int(SCREEN_HEIGHT * 0.25)
+        ty = int(SCREEN_HEIGHT * 0.2)
         card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
         m_pos = pygame.mouse.get_pos()
