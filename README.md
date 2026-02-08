@@ -9,6 +9,12 @@
 - Computer science based trivia
 - Custom AI voice-lines generated through [Eleven Labs](https://elevenlabs.io/)
 
+### Challenges
+- Working with branching and resolving merge conflicts.
+- Creating a working implementation of the game within the time constraints.
+- Acquiring clear and useful voice samples to generate new AI-generated voice messages.
+- Ensuring consistent usability amongst different Operating Systems.
+
 
 ## How To Run
 
