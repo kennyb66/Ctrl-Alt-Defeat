@@ -406,7 +406,8 @@ class Game:
                 "2. Attack to lower the Professor's HP.",
                 "3. Heal when low (but you can't heal at 100%!).",
                 "4. When the Prof attacks, answer correctly to DODGE!",
-                "5. Defeat all 3 professors to graduate."
+                "5. Defeat all 3 professors to graduate.",
+                "6. Walk left of the main hall to exit the game."
             ]
             for i, line in enumerate(instructions):
                 draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.2) + (i * int(SCREEN_HEIGHT * 0.04)), self.font, BLACK)
