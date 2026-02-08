@@ -47,6 +47,7 @@ class Game:
         self.q_manager = QuestionManager()
         
         self.state = MENU
+        self.last_music_state = None  # Track which state's music is currently playing
         self.show_how_to_play = False
         self.selected_idx = None
         self.current_level = 0
@@ -356,7 +357,12 @@ class Game:
 
     def draw_menu(self):
         intro_file = os.path.join(SFX_DIR, f"title_screen.wav")
-        self.sound.play_music(intro_file)
+        # Only initialize music if we just entered the MENU state
+        if self.last_music_state != MENU:
+            self.sound.clear_music()
+            self.sound.play_music(intro_file)
+            self.last_music_state = MENU
+        
         side_margin = 0.025 * SCREEN_WIDTH
 
         help_w = 0.026 * SCREEN_WIDTH
@@ -441,6 +447,12 @@ class Game:
         self.screen.blit(sprite, (draw_x, draw_y))
 
     def draw_character_select(self):
+        # Continue menu music or initialize SELECT music if it changes
+        if self.last_music_state != SELECT:
+            # Keep playing the same intro music during character selection
+            # (or use a different track here if desired, e.g., os.path.join(SFX_DIR, f"select_screen.wav"))
+            self.last_music_state = SELECT
+        
         draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
         
         card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
