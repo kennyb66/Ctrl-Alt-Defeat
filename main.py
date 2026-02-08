@@ -348,6 +348,33 @@ class Game:
                 draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
 
+    def draw_character_preview(self, student, rect, facing="right"):
+        frame = None
+        if hasattr(student, "all_frames"):
+            frames = student.all_frames.get(facing, {}).get(IDLE, [])
+            if frames:
+                frame = frames[0]
+
+        if not frame:
+            pygame.draw.rect(self.screen, BLACK, rect, border_radius=10)
+            return
+
+        padding = int(min(rect.w, rect.h) * 0.08)
+        max_w = rect.w - padding * 2
+        max_h = rect.h - padding * 2
+        if max_w <= 0 or max_h <= 0:
+            return
+
+        frame_w, frame_h = frame.get_size()
+        scale = min(max_w / frame_w, max_h / frame_h)
+        target_w = max(1, int(frame_w * scale))
+        target_h = max(1, int(frame_h * scale))
+
+        sprite = pygame.transform.smoothscale(frame, (target_w, target_h))
+        draw_x = rect.x + (rect.w - target_w) // 2
+        draw_y = rect.y + (rect.h - target_h) // 2
+        self.screen.blit(sprite, (draw_x, draw_y))
+
     def draw_character_select(self):
         draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
         
@@ -365,8 +392,14 @@ class Game:
                 color = GOLD if is_hovered else GRAY
                 pygame.draw.rect(self.screen, color, rect, border_radius=15)
                 pygame.draw.rect(self.screen, WHITE, rect, 2, border_radius=15)
-                
-                pygame.draw.rect(self.screen, BLACK, (x + int(card_w * 0.14), y + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54)), border_radius=10)
+
+                preview_rect = pygame.Rect(
+                    x + int(card_w * 0.14),
+                    y + int(card_h * 0.09),
+                    int(card_w * 0.71),
+                    int(card_h * 0.54),
+                )
+                self.draw_character_preview(s, preview_rect)
                 draw_text(self.screen, s.name, x + card_w//2, y + int(card_h * 0.68), self.font, WHITE, True)
         else:
             # CENTER AND ENLARGE LOGIC
@@ -385,13 +418,27 @@ class Game:
                 dark_color = (50, 50, 50)  # darkened gray
                 pygame.draw.rect(self.screen, dark_color, (ox, oy, card_w, card_h), border_radius=15)
                 pygame.draw.rect(self.screen, WHITE, (ox, oy, card_w, card_h), 2, border_radius=15)
-                pygame.draw.rect(self.screen, BLACK, (ox + int(card_w * 0.14), oy + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54)), border_radius=10)
+
+                preview_rect = pygame.Rect(
+                    ox + int(card_w * 0.14),
+                    oy + int(card_h * 0.09),
+                    int(card_w * 0.71),
+                    int(card_h * 0.54),
+                )
+                self.draw_character_preview(other, preview_rect)
                 draw_text(self.screen, other.name, ox + card_w//2, oy + int(card_h * 0.68), self.font, WHITE, True)
 
             # Focused Card
             pygame.draw.rect(self.screen, GOLD, (x, y, large_w, large_h), border_radius=15)
             pygame.draw.rect(self.screen, WHITE, (x, y, large_w, large_h), 4, border_radius=15)
-            pygame.draw.rect(self.screen, BLACK, (x + int(large_w * 0.11), y + int(large_h * 0.07), int(large_w * 0.78), int(large_h * 0.54)), border_radius=10)
+
+            preview_rect = pygame.Rect(
+                x + int(large_w * 0.11),
+                y + int(large_h * 0.07),
+                int(large_w * 0.78),
+                int(large_h * 0.54),
+            )
+            self.draw_character_preview(s, preview_rect)
             draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, WHITE, True)
 
             draw_text(self.screen, "SPECIAL ABILITY:", x + int(large_w * 0.09), y + int(large_h * 0.72), self.small_font, GOLD)
