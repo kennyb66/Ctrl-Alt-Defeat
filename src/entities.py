@@ -6,7 +6,7 @@ import os
 
 class AnimatedEntity:
     def __init__(self, name, hp, attack_power, color, sprite_folder=None,
-                 idle_frames=2, action_frames=1, scale=3, animation_speed=400):
+                 idle_frames=2, action_frames=1, scale=5, animation_speed=400):
         self.name = name
         self.hp = hp
         self.max_hp = hp
@@ -159,7 +159,7 @@ class AnimatedEntity:
 class Student(AnimatedEntity):
     def __init__(self, name, hp, attack_power, ability_desc, win_msg,
                  sprite_folder=None, idle_frames=2, action_frames=1,
-                 scale=3, animation_speed=600,numHeals=1):
+                 scale=5, animation_speed=300,numHeals=1):
         # Pass everything to AnimatedEntity
         super().__init__(name, hp, attack_power, GREEN,
                          sprite_folder=sprite_folder,
@@ -189,13 +189,13 @@ class Student(AnimatedEntity):
         
         if roll < crit_chance:
             if self.name == "4.0 Medallion":
-                msg = "CRITICAL HIT! (The Curve effect!)"
+                msg = "CRITICAL HIT!\n(The Curve effect!)"
                 return int(self.attack_power * 1.5), msg, True
             else:
                 msg = "CRITICAL HIT!"
                 return int(self.attack_power * 1.5), msg, False
         elif roll < crit_chance + 0.15:
-            msg = "BLOCKED! Partial Hit."
+            msg = "BLOCKED!\nPartial Hit."
             return int(self.attack_power * 0.5), msg, False
         return self.attack_power, "Direct Hit!", False
 
@@ -204,13 +204,13 @@ class Student(AnimatedEntity):
 
         base = 35
         if self.name == "TA God":
-            return int(base * 2), "SPECIAL: Lab snacks! Double Healing!"
-        return base, f"Studied hard. Restored {base} HP."
+            return int(base * 2), "SPECIAL: Lab snacks! Double Healing!", True
+        return base, f"Studied hard. Restored {base} HP.", False
 
 class Professor(AnimatedEntity):
     def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId,
                  sprite_folder=None, idle_frames=2, action_frames=1,
-                 scale=3, animation_speed=600):
+                 scale=6, animation_speed=350):
         super().__init__(name, hp, attack_power, OU_CRIMSON,
                          sprite_folder=sprite_folder,
                          idle_frames=idle_frames,

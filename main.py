@@ -91,7 +91,7 @@ class Game:
             Student(
                 "Cs Get Degrees", 100, 15,
                 "Hidden Ability: 25% chance to ignore a wrong answer on a dodge.",
-                "C's Get Degrees! You passed!",
+                "C's Really Do Get Degrees! You passed!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2
             ),
@@ -101,15 +101,14 @@ class Game:
                 "Academic Excellence!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2,
-                scale=5,   
-                animation_speed=300
             ),
             Student(
                 "TA God", 100, 18,
                 "Special: Healing restores twice as much HP (Lab Snacks).",
                 "The lab is yours now!",
-                sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
-                idle_frames=2
+                sprite_folder=os.path.join(SPRITE_DIR, "ken", "standard", "idle", "right"),
+                idle_frames=2,
+                scale = 4
             )
         ]
         
@@ -120,9 +119,7 @@ class Game:
                 "Top Floor Devon",
                 bossId=1,
                 sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
-                idle_frames=2,
-                scale=5,   
-                animation_speed=350
+                idle_frames=2
             ),
             Professor(
                 "Prof Maiti", 100, 35,
@@ -271,7 +268,7 @@ class Game:
         # Floor
         pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT-300, SCREEN_WIDTH, 300))
         
-        self.player.draw(self.screen, 250, SCREEN_HEIGHT - 550)
+        self.player.draw(self.screen, 150, SCREEN_HEIGHT - 550)
         boss_y = SCREEN_HEIGHT - 650
 
         # ----- Boss entrance walking -----
@@ -315,18 +312,22 @@ class Game:
             alpha = max(0, min(255, int(255 * (time_left / 1000))))
             
             # BIG dramatic font
-            big_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.06), bold=True)
-            txt_surface = big_font.render(self.combat_text, True, self.combat_text_color)
+            big_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.05), bold=True)
+            lines = self.combat_text.split('\n')
+            line_height = big_font.get_height()
+            
+            # Render each line
+            for i, line in enumerate(lines):
+                txt_surface = big_font.render(line, True, self.combat_text_color)
+                txt_surface.set_alpha(alpha)
+                
+                # Position above player, offset each line
+                text_x = 250 + 75 - txt_surface.get_width() // 2
+                text_y = SCREEN_HEIGHT - 600 + self.combat_text_y_offset + (i * line_height)
+                
+                self.screen.blit(txt_surface, (text_x, text_y))
 
-            txt_surface.set_alpha(alpha)
-
-            # position above player
-            text_x = 250 + 75 - txt_surface.get_width() // 2
-            text_y = SCREEN_HEIGHT - 600 + self.combat_text_y_offset
-
-            self.screen.blit(txt_surface, (text_x, text_y))
-
-        if self.player.current_speech and pygame.time.get_ticks() < self.player.speech_timer:
+     #   if self.player.current_speech and pygame.time.get_ticks() < self.player.speech_timer:
             '''# Note: We pass a negative width to draw_speech_bubble or adjust X 
             # so the bubble tail points to the player.
             # Using your ui.py logic:
