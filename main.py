@@ -5,8 +5,7 @@ from src.constants import *
 from src.entities import Student, Professor
 from src.ui import Button, draw_text, draw_speech_bubble, wrap_text
 from src.dataGen import load_questions
-from src.soundGen import play_audio_clip
-from src.soundGen import play_random_voiceline
+from src.soundGen import SoundManager
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,13 +17,18 @@ pygame.mixer.init()  # This is required to play sounds
 
 class Game:
     def __init__(self):
+        self.sound = SoundManager()
         pygame.init()
-        # macOS specific: center the window
+        # Center the window on all platforms (Windows, macOS, Linux)
         os.environ['SDL_VIDEO_CENTERED'] = '1'
         
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
         
+        # Get actual screen dimensions after fullscreen is set (fixes Windows centering)
+        global SCREEN_WIDTH, SCREEN_HEIGHT
+        SCREEN_WIDTH = self.screen.get_width()
+        SCREEN_HEIGHT = self.screen.get_height()
         # Responsive fonts
         self.font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.025))
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
@@ -102,7 +106,7 @@ class Game:
             ),
             Student(
                 "TA God", 100, 18,
-                "Special: Healing restores 50% more HP (Lab Snacks).",
+                "Special: Healing restores twice as much HP (Lab Snacks).",
                 "The lab is yours now!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2
@@ -111,7 +115,7 @@ class Game:
         
         self.profs = [
             Professor(
-                "Prof Sridhar", 150, 20,
+                "Prof Sridhar", 150, 35,
                 "Logic is not O(1). You fail Data Structures.",
                 "Top Floor Devon",
                 bossId=1,
@@ -121,7 +125,7 @@ class Game:
                 animation_speed=350
             ),
             Professor(
-                "Prof Maiti", 100, 15,
+                "Prof Maiti", 100, 35,
                 "Compiling error... You fail Java 2.",
                 "Library Lawn",
                 bossId=2,
@@ -129,7 +133,7 @@ class Game:
                 idle_frames=2
             ),
             Professor(
-                "Prof Diochnos", 200, 25,
+                "Prof Diochnos", 200, 35,
                 "Model Underfitted. You fail ML.",
                 "The Clouds",
                 bossId=3,
@@ -359,9 +363,9 @@ class Game:
                 self.answer_btns.append(btn)
         else:
             draw_text(self.screen, self.battle_log, 80, SCREEN_HEIGHT - 120, self.font)
-            heal_dis = self.player.hp >= self.player.max_hp
             self.btn_atk = Button("ATTACK", SCREEN_WIDTH - 480, SCREEN_HEIGHT - 105, 180, 50, GRAY)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_dis)
+            heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
+            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_disabled)
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
@@ -419,7 +423,7 @@ class Game:
                     # Pull a random question for this boss
                     self.show_question = True
                     self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-                    play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                    self.sound.play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
 
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
                 amt, msg, is_special = self.player.get_heal_amount()
@@ -431,7 +435,9 @@ class Game:
                 
                 self.show_question = True
                 self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-                play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                self.sound.play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                
+                self.player.numHeals -= 1 # Decrease the number of heals left
                 
         else:
             for btn in self.answer_btns:
@@ -510,7 +516,7 @@ class Game:
 
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
                                 intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
-                                play_audio_clip(intro_file)
+                                self.sound.play_voice(intro_file)
 
                             # Click outside the focused card cancels selection
                             elif not focused_rect.collidepoint(m_pos):
@@ -556,6 +562,8 @@ class Game:
             elif self.state == LOSS:
                 draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
                 draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
+                self.player.hp = self.player.max_hp
+                self.boss.hp = self.boss.max_hp
 
             self.handle_fade()
             pygame.display.flip()
@@ -563,4 +571,4 @@ class Game:
         pygame.quit()
 
 if __name__ == "__main__":
-    Game().run()
+    Game().run() 

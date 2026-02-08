@@ -60,38 +60,49 @@ class Button:
         line_height = font.get_height()
         padding = 10
         calculated_height = max(self.min_height, len(lines) * line_height + padding * 2)
-        
+
         # Center button vertically around base_y
         y = self.base_y - (calculated_height // 2)
-        
+
         # Update rect
         self.rect = pygame.Rect(self.rect.x, y, self.w, calculated_height)
-        
-        # Determine color
+
         mouse_pos = pygame.mouse.get_pos()
-        color = self.base_color
+
+        # Determine color
         if self.disabled:
-            color = (30, 30, 30)  # Dark gray for disabled buttons
+            bg_color = (40, 40, 40)     # darker gray
+            border_color = (90, 90, 90) # muted border
+            txt_color = (160, 160, 160) # muted text
         elif self.rect.collidepoint(mouse_pos):
-            color = self.hover_color
-        
+            bg_color = self.hover_color
+            border_color = WHITE
+            txt_color = BLACK
+        else:
+            bg_color = self.base_color
+            border_color = WHITE
+            txt_color = WHITE
+
         # Draw button
-        pygame.draw.rect(screen, color, self.rect, border_radius=5)
-        pygame.draw.rect(screen, WHITE, self.rect, 2, border_radius=5)
-        
+        pygame.draw.rect(screen, bg_color, self.rect, border_radius=5)
+        pygame.draw.rect(screen, border_color, self.rect, 2, border_radius=5)
+
         # Draw text lines
-        txt_color = BLACK if (color == self.hover_color and not self.disabled) else WHITE
         total_text_height = len(lines) * line_height
         start_y = self.rect.y + (self.rect.h - total_text_height) // 2
-        
+
         for i, line in enumerate(lines):
             txt = font.render(line, True, txt_color)
             txt_x = self.rect.x + (self.rect.w - txt.get_width()) // 2
             txt_y = start_y + (i * line_height)
             screen.blit(txt, (txt_x, txt_y))
+
     
     def is_clicked(self, pos):
-        return self.rect.collidepoint(pos) and not self.disabled
+        if self.disabled:
+            return False
+        return self.rect.collidepoint(pos)
+
 
 def draw_speech_bubble(screen, text, x, y, font, width=350, type = "boss"):
     """Draws a speech bubble that scales based on the length of the text."""

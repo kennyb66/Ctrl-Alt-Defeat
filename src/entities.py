@@ -159,7 +159,7 @@ class AnimatedEntity:
 class Student(AnimatedEntity):
     def __init__(self, name, hp, attack_power, ability_desc, win_msg,
                  sprite_folder=None, idle_frames=2, action_frames=1,
-                 scale=3, animation_speed=600):
+                 scale=3, animation_speed=600,numHeals=1):
         # Pass everything to AnimatedEntity
         super().__init__(name, hp, attack_power, GREEN,
                          sprite_folder=sprite_folder,
@@ -168,6 +168,7 @@ class Student(AnimatedEntity):
                          scale=scale,
                          animation_speed=animation_speed)
 
+        self.numHeals = numHeals
         self.ability_desc = ability_desc
         self.win_msg = win_msg
         self.current_speech = ""
@@ -201,10 +202,10 @@ class Student(AnimatedEntity):
     def get_heal_amount(self):
       #  self.set_state(ACTION)
 
-        base = 25
+        base = 35
         if self.name == "TA God":
-            return int(base * 1.5), "SPECIAL: Lab snacks! +50% Healing!", True
-        return base, f"Studied hard. Restored {base} HP.", False
+            return int(base * 2), "SPECIAL: Lab snacks! Double Healing!"
+        return base, f"Studied hard. Restored {base} HP."
 
 class Professor(AnimatedEntity):
     def __init__(self, name, hp, attack_power, loss_msg, level_name, bossId,
