@@ -12,6 +12,7 @@ from src.soundGen import SoundManager
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "assets", "audio")
 SPRITE_DIR = os.path.join(BASE_DIR, "assets", "characters")
+SFX_DIR = os.path.join(BASE_DIR, "assets", "audio", "sfx")
 
 pygame.init()
 pygame.mixer.init()  # This is required to play sounds
@@ -35,6 +36,15 @@ class Game:
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
         self.medium_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.035), bold=True)
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
+        
+        # Load background images
+        scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.webp")
+        self.scroll_bg = pygame.image.load(scroll_path)
+        self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.65), int(SCREEN_HEIGHT * 0.55)))
+        
+        # Initialize question manager
+        from src.dataGen import QuestionManager
+        self.q_manager = QuestionManager()
         
         self.state = MENU
         self.show_how_to_play = False
@@ -345,6 +355,8 @@ class Game:
 
 
     def draw_menu(self):
+        intro_file = os.path.join(SFX_DIR, f"title_screen.wav")
+        self.sound.play_music(intro_file)
         side_margin = 0.025 * SCREEN_WIDTH
 
         help_w = 0.026 * SCREEN_WIDTH
@@ -382,7 +394,12 @@ class Game:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 220))
             self.screen.blit(overlay, (0,0))
-            pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH//6, SCREEN_HEIGHT//4, SCREEN_WIDTH//1.5, SCREEN_HEIGHT//2), 3)
+            
+            # Draw scroll background
+            scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
+            scroll_y = SCREEN_HEIGHT//4
+            self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
+            
             draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
             instructions = [
                 "1. Pick your Student character.",
@@ -394,7 +411,7 @@ class Game:
             for i, line in enumerate(instructions):
                 draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
-
+        
     def draw_character_select(self):
         draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
         
@@ -457,6 +474,13 @@ class Game:
 
 
     def draw_battle(self):
+        boss_music_id = self.boss.bossId  # the boss for this level
+        if getattr(self, 'current_boss_music_id', None) != boss_music_id:
+            # Boss has changed, start new music
+            self.sound.clear_music()
+            self.sound.play_music(os.path.join(SFX_DIR, f"Boss{boss_music_id}_music.wav"), volume=0.1)
+            self.current_boss_music_id = boss_music_id
+
         # Floor
         pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.3), SCREEN_WIDTH, int(SCREEN_HEIGHT * 0.3)))
         ui_margin = int(SCREEN_WIDTH * 0.026)
@@ -642,6 +666,10 @@ class Game:
         if not self.show_question:
             if self.btn_atk and self.btn_atk.is_clicked(mouse_pos):
                 dmg, msg, is_special = self.player.calculate_attack()
+                if is_special:
+                    self.sound.play_sfx(os.path.join(SFX_DIR, "critical_hit.wav"), volume=0.1)
+                else:
+                    self.sound.play_sfx(os.path.join(SFX_DIR, "punch_sound.wav"), volume=0.1)
                 self.show_combat_text(msg, GOLD if is_special else GRAY)
 
                 self.boss.hp -= dmg
@@ -660,6 +688,8 @@ class Game:
                     self.victory_timer = pygame.time.get_ticks()
                     self.victory_stage = 1
                     self.is_player_victory = True
+                    self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
+                    self.sound.play_voice(os.path.join(SFX_DIR, f"win-sound.wav"), volume=0.3)
                    # self.boss_entering = True
                    # self.boss_x = SCREEN_WIDTH + 200
 
@@ -668,7 +698,10 @@ class Game:
                     # Pull a random question for this boss
                     self.show_question = True
                     self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-                    self.sound.play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                    if self.boss.bossId == 2 or self.boss.bossId == 3:
+                        self.sound.play_random_voiceline(self.boss.bossId, volume = 0.3)  # Play a random voiceline for the boss when they ask a question"
+                    else:
+                        self.sound.play_random_voiceline(self.boss.bossId, volume = 1.0)  # Play a random voiceline for the boss when they ask a question
 
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
                 amt, msg, is_special = self.player.get_heal_amount()
@@ -714,8 +747,8 @@ class Game:
                         self.victory_timer = pygame.time.get_ticks()
                         self.victory_stage = 1
                         self.is_player_victory = False
-               
-
+                        self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
+                        self.sound.play_voice(os.path.join(SFX_DIR, f"lose_sound.wav"), volume=0.2)
 
     def run(self):
         running = True
