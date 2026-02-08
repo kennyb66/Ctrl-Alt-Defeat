@@ -43,6 +43,8 @@ class Game:
         self.selected_idx = None
         self.current_level = 0
 
+        self.show_exit_prompt = False
+
         self.victory_timer = 0
         self.victory_stage = 0 
         self.is_player_victory = True
@@ -86,10 +88,17 @@ class Game:
 
 
         # Hallway Variables
-        self.player_world_x = 100
-        self.hallway_width = SCREEN_WIDTH * 2  # Make it long
+        self.player_world_x = 400
+        self.hallway_width = SCREEN_WIDTH * 4  # Make it MUCH longer (was * 2)
         self.camera_x = 0
         self.selected_door = None
+
+        # Define 3 Door locations - SPREAD THEM OUT MORE
+        self.door_locations = [
+            {"x": 600, "level": 0, "rect": None},      # Was 600
+            {"x": 1200, "level": 1, "rect": None},     # Was 1200
+            {"x": 1800, "level": 2, "rect": None}      # Was 1800
+        ]
         
         # Load Door Assets
         try:
@@ -105,12 +114,6 @@ class Game:
             self.door_upclose_img = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             self.door_upclose_img.fill(GRAY)
 
-        # Define 3 Door locations
-        self.door_locations = [
-            {"x": 600, "level": 0, "rect": None},
-            {"x": 1200, "level": 1, "rect": None},
-            {"x": 1800, "level": 2, "rect": None}
-        ]
 
 
     def setup_data(self):
@@ -195,10 +198,14 @@ class Game:
                 # CHECK PROXIMITY: If player is within 100 pixels of the door
                 distance = abs(self.player_world_x - door["x"])
                 is_near = distance < 100
+             
                 
                 # Choose image based on proximity
                 # door_upclose_img is actually your "cracked" version here
-                img_to_use = self.door_upclose_img if is_near else self.door_img
+                if is_near and i <= self.current_level:
+                    img_to_use = self.door_upclose_img
+                else:
+                    img_to_use = self.door_img
                 
                 # If it's the cracked version, we need to scale it down for the hallway view
                 if is_near:
@@ -215,7 +222,20 @@ class Game:
                 door["rect"] = pygame.Rect(screen_x, SCREEN_HEIGHT - 550, 200, 350)
 
         # 3. DRAW PLAYER (Centered on screen)
-        self.player.draw(self.screen, (SCREEN_WIDTH // 2) - 75, SCREEN_HEIGHT - 450)
+        self.player.draw(self.screen, self.player_screen_x - 75, SCREEN_HEIGHT - 450)
+        if self.show_exit_prompt:
+            overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            self.screen.blit(overlay, (0, 0))
+            
+            draw_text(self.screen, "Return to Menu?", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, WHITE, True)
+            
+            self.btn_exit_yes = Button("YES", SCREEN_WIDTH//2 - 160, SCREEN_HEIGHT//2 + 50, 140, 60, OU_CRIMSON)
+            self.btn_exit_no = Button("NO", SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 50, 140, 60, GRAY)
+            
+            self.btn_exit_yes.draw(self.screen, self.font)
+            self.btn_exit_no.draw(self.screen, self.font)
+
     def draw_door_view(self):
         # Full screen background
         bg = pygame.transform.scale(self.door_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -251,11 +271,20 @@ class Game:
 
         # FIX: Boundaries. 100 is the start, hallway_width is the end.
         # This prevents the "walking into darkness" issue.
-        self.player_world_x = max(100, min(self.player_world_x, self.hallway_width - 100))
+        max_world_x = self.door_locations[-1]["x"] + 300
+        self.player_world_x = max(100, min(self.player_world_x, max_world_x))
         
+        target_camera_x = self.player_world_x - (SCREEN_WIDTH // 2)
+
         # Camera centering logic
-        self.camera_x = self.player_world_x - (SCREEN_WIDTH // 2)
-        self.camera_x = max(0, min(self.camera_x, self.hallway_width - SCREEN_WIDTH))
+        self.camera_x = max(0, min(target_camera_x, self.hallway_width - SCREEN_WIDTH))
+        max_screen_x = SCREEN_WIDTH - 200
+
+        player_screen_x = self.player_world_x - self.camera_x
+        self.player_screen_x = player_screen_x
+        if self.player_world_x <= 100:
+            self.show_exit_prompt = True
+        
         self.player.update()
         
     def start_fade(self, next_state):
@@ -604,7 +633,7 @@ class Game:
                             self.player = self.roster[self.selected_idx]
                             self.player.facing = "right"
                             self.player.set_state(IDLE)
-                            self.player_world_x = 100 
+                            self.player_world_x = 400 
                             
                             # GO TO HALLWAY
                             self.start_fade(HALLWAY)
@@ -645,14 +674,30 @@ class Game:
                                 self.selected_idx = None
 
                     elif self.state == HALLWAY:
-                        for door in self.door_locations:
-                            if door["rect"] and door["rect"].collidepoint(m_pos) and door["level"] <= self.current_level:
-                                self.selected_door = door
-                                self.state = DOOR_VIEW
+                        if self.show_exit_prompt:
+                            if self.btn_exit_yes.is_clicked(m_pos):
+                                self.show_exit_prompt = False
+                                self.start_fade(MENU)
+                            elif self.btn_exit_no.is_clicked(m_pos):
+                                self.show_exit_prompt = False
+                                self.player_world_x = 150  # Move them slightly away from edge
+                        else:
+                            for i, door in enumerate(self.door_locations):
+                                # Check if door is clickable: must be unlocked AND player is near
+                                distance = abs(self.player_world_x - door["x"])
+                                is_near = distance < 100
+                                is_unlocked = door["level"] <= self.current_level
+                                
+                                if door["rect"] and door["rect"].collidepoint(m_pos) and is_unlocked and is_near:
+                                    self.selected_door = door
+                                    self.state = DOOR_VIEW
                     elif self.state == DOOR_VIEW:
                         if self.btn_confirm.is_clicked(m_pos):
                             self.boss = self.profs[self.selected_door["level"]]
                             self.start_fade(BATTLE)
+                            #TODO cant hear sridhar
+                            intro_file = f"assets/audio//Prof{self.boss.bossId}Intro.wav"
+                            self.sound.play_voice(intro_file)
                             self.player.facing = "right"
                             self.boss.facing = "left"
                             self.boss.hp = self.boss.max_hp
