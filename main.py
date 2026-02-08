@@ -893,6 +893,7 @@ class Game:
                             self.player.facing = "right"
                             self.boss.facing = "left"
                             self.boss.hp = self.boss.max_hp
+                            self.player.set_state(IDLE)
                             self.boss.set_state(IDLE)
                     
                             self.start_fade(BATTLE)
