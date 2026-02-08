@@ -609,7 +609,10 @@ class Game:
                 
                 self.show_question = True
                 self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-                self.sound.play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                if self.boss.bossId == 2 or self.boss.bossId == 3:
+                    self.sound.play_random_voiceline(self.boss.bossId, volume=0.3)  # Play a random voiceline for the boss when they ask a question
+                else:
+                    self.sound.play_random_voiceline(self.boss.bossId, volume=1)  # Play a random voiceline for the boss when they ask a question
                 
                 self.player.numHeals -= 1 # Decrease the number of heals left
                 
@@ -730,9 +733,11 @@ class Game:
                         if self.btn_confirm.is_clicked(m_pos):
                             self.boss = self.profs[self.selected_door["level"]]
                             self.start_fade(BATTLE)
-                            #TODO cant hear sridhar
                             intro_file = f"assets/audio//Prof{self.boss.bossId}Intro.wav"
-                            self.sound.play_voice(intro_file)
+                            if self.boss.bossId == 2 or self.boss.bossId == 3:
+                                self.sound.play_voice(intro_file, volume = 0.3)  # Play a random voiceline for the boss when they enter"
+                            else:
+                                self.sound.play_voice(intro_file)
                             self.player.facing = "right"
                             self.boss.facing = "left"
                             self.boss.hp = self.boss.max_hp
