@@ -14,6 +14,7 @@ class AnimatedEntity:
         self.color = color
 
         self.state = IDLE
+
         self.frame_index = 0
         self.last_update = pygame.time.get_ticks()
         self.animation_speed = animation_speed
@@ -38,6 +39,12 @@ class AnimatedEntity:
             # Placeholder empty action frames
             self.frames[ACTION] = [pygame.Surface(self.frames[IDLE][0].get_size(), pygame.SRCALPHA) for _ in range(action_frames)]
 
+    def set_state(self, new_state):
+        if self.state != new_state:
+            self.state = new_state
+            self.frame_index = 0
+            self.last_update = pygame.time.get_ticks()
+
     def update_animation(self):
         now = pygame.time.get_ticks()
         if self.state == IDLE:
@@ -53,7 +60,8 @@ class AnimatedEntity:
                     self.frame_index = (self.frame_index + 1) % len(self.frames[ACTION])
                 self.last_update = now
                 if self.frame_index == 0:
-                    self.state = IDLE
+                    self.set_state(IDLE)
+
 
 
     def draw(self, screen, x, y):
@@ -103,7 +111,8 @@ class Student(AnimatedEntity):
         self.speech_timer = pygame.time.get_ticks() + 2000 
 
     def calculate_attack(self):
-        self.state = ACTION
+        self.set_state(ACTION)
+
         roll = random.random()
         crit_chance = 0.20 if self.name == "4.0 Medallion" else 0.05
         
@@ -116,7 +125,8 @@ class Student(AnimatedEntity):
         return self.attack_power, "Direct Hit!"
 
     def get_heal_amount(self):
-        self.state = ACTION
+        self.set_state(ACTION)
+
         base = 25
         if self.name == "TA God":
             return int(base * 1.5), "SPECIAL: Lab snacks! +50% Healing!"

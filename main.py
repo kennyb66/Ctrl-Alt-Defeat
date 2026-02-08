@@ -118,7 +118,6 @@ class Game:
         ]
 
 
-
     def load_questions(self):
         self.questions = {}
         all_questions = load_questions()
