@@ -12,6 +12,7 @@ from src.soundGen import SoundManager
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 AUDIO_DIR = os.path.join(BASE_DIR, "assets", "audio")
 SPRITE_DIR = os.path.join(BASE_DIR, "assets", "characters")
+SFX_DIR = os.path.join(BASE_DIR, "assets", "audio", "sfx")
 
 pygame.init()
 pygame.mixer.init()  # This is required to play sounds
@@ -94,7 +95,7 @@ class Game:
                 idle_frames=2
             ),
             Student(
-                "4.0 Medallion", 400, 20,
+                "4.0 Medallion", 100, 20,
                 "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
                 "Academic Excellence!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
@@ -170,6 +171,9 @@ class Game:
 
 
     def draw_menu(self):
+        intro_file = os.path.join(SFX_DIR, f"title_screen.wav")
+        self.sound.play_music(intro_file)
+        
         draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - int(SCREEN_HEIGHT * 0.05), self.title_font, OU_CRIMSON, True)
         self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
         self.btn_help = Button("?", int(SCREEN_WIDTH * 0.013), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08), int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), GRAY)
@@ -195,7 +199,7 @@ class Game:
             for i, line in enumerate(instructions):
                 draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
-
+        
     def draw_character_select(self):
         draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
         
@@ -258,6 +262,13 @@ class Game:
 
 
     def draw_battle(self):
+        boss_music_id = self.boss.bossId  # the boss for this level
+        if getattr(self, 'current_boss_music_id', None) != boss_music_id:
+            # Boss has changed, start new music
+            self.sound.clear_music()
+            self.sound.play_music(os.path.join(SFX_DIR, f"Boss{boss_music_id}_music.wav"), volume=0.1)
+            self.current_boss_music_id = boss_music_id
+
         # Floor
         pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.3), SCREEN_WIDTH, int(SCREEN_HEIGHT * 0.3)))
         
@@ -414,6 +425,8 @@ class Game:
                     self.victory_timer = pygame.time.get_ticks()
                     self.victory_stage = 1
                     self.is_player_victory = True
+                    self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
+                    self.sound.play_voice(os.path.join(SFX_DIR, f"win-sound.wav"), volume=0.3)
                    # self.boss_entering = True
                    # self.boss_x = SCREEN_WIDTH + 200
 
@@ -422,7 +435,10 @@ class Game:
                     # Pull a random question for this boss
                     self.show_question = True
                     self.current_q = self.q_manager.get_random_question(self.boss.bossId)
-                    self.sound.play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                    if self.boss.bossId == 2 or self.boss.bossId == 3:
+                        self.sound.play_random_voiceline(self.boss.bossId, volume = 0.3)  # Play a random voiceline for the boss when they ask a question"
+                    else:
+                        self.sound.play_random_voiceline(self.boss.bossId, volume = 1.0)  # Play a random voiceline for the boss when they ask a question
 
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
                 amt, msg, is_special = self.player.get_heal_amount()
@@ -468,6 +484,8 @@ class Game:
                         self.victory_timer = pygame.time.get_ticks()
                         self.victory_stage = 1
                         self.is_player_victory = False
+                        self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
+                        self.sound.play_voice(os.path.join(SFX_DIR, f"lose_sound.wav"), volume=0.2)
                
 
 
