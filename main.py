@@ -35,6 +35,11 @@ class Game:
         self.medium_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.035), bold=True)
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
         
+        # Load background images
+        scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.webp")
+        self.scroll_bg = pygame.image.load(scroll_path)
+        self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.65), int(SCREEN_HEIGHT * 0.55)))
+        
         # Initialize question manager
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
@@ -191,7 +196,12 @@ class Game:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 220))
             self.screen.blit(overlay, (0,0))
-            pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH//6, SCREEN_HEIGHT//4, SCREEN_WIDTH//1.5, SCREEN_HEIGHT//2), 3)
+            
+            # Draw scroll background
+            scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
+            scroll_y = SCREEN_HEIGHT//4
+            self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
+            
             draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
             instructions = [
                 "1. Pick your Student character.",
@@ -296,12 +306,16 @@ class Game:
         pygame.draw.rect(self.screen, GREEN, (int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), hp_bar_w * p_hp_ratio, hp_bar_h))
         draw_text(self.screen, f"{self.player.name}: {self.player.hp} HP", int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.02), self.font)
 
-        pygame.draw.rect(self.screen, OU_CRIMSON, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
-        pygame.draw.rect(self.screen, GREEN, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w * b_hp_ratio, hp_bar_h))
-        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.25), int(SCREEN_HEIGHT * 0.02), self.font)
+        boss_bar_x = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.026) - hp_bar_w
+        pygame.draw.rect(self.screen, OU_CRIMSON, (boss_bar_x, int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
+        pygame.draw.rect(self.screen, GREEN, (boss_bar_x, int(SCREEN_HEIGHT * 0.05), hp_bar_w * b_hp_ratio, hp_bar_h))
+        boss_hp_text = f"{self.boss.name}: {self.boss.hp} HP"
+        boss_hp_surface = self.font.render(boss_hp_text, True, WHITE)
+        boss_hp_x = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.026) - boss_hp_surface.get_width()
+        self.screen.blit(boss_hp_surface, (boss_hp_x, int(SCREEN_HEIGHT * 0.02)))
 
         # Control Box
-        ui_rect = pygame.Rect(int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18), SCREEN_WIDTH - int(SCREEN_WIDTH * 0.052), int(SCREEN_HEIGHT * 0.15))
+        ui_rect = pygame.Rect(int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.19), SCREEN_WIDTH - int(SCREEN_WIDTH * 0.052), int(SCREEN_HEIGHT * 0.16))
         pygame.draw.rect(self.screen, BLACK, ui_rect, border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
