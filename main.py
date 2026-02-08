@@ -5,6 +5,7 @@ from src.constants import *
 from src.entities import Student, Professor
 from src.ui import Button, draw_text, draw_speech_bubble, wrap_text
 from src.dataGen import load_questions
+from src.dataGen import QuestionManager
 from src.soundGen import SoundManager
 
 
@@ -33,10 +34,6 @@ class Game:
         self.font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.025))
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
-        
-        # Initialize question manager
-        from src.dataGen import QuestionManager
-        self.q_manager = QuestionManager()
         
         self.state = MENU
         self.show_how_to_play = False
@@ -122,17 +119,17 @@ class Game:
                 idle_frames=2
             ),
             Professor(
-                "Prof Maiti", 100, 35,
-                "Compiling error... You fail Java 2.",
-                "Library Lawn",
+                "Prof Diochnos", 200, 35,
+                "Model Underfitted. You fail ML.",
+                "The Clouds",
                 bossId=2,
                 sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
                 idle_frames=2
             ),
             Professor(
-                "Prof Diochnos", 200, 35,
-                "Model Underfitted. You fail ML.",
-                "The Clouds",
+                "Prof Maiti", 275, 35,
+                "Compiling error... You fail Java 2.",
+                "Library Lawn",
                 bossId=3,
                 sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "down"),
                 idle_frames=2
@@ -141,12 +138,7 @@ class Game:
 
 
     def load_questions(self):
-        self.questions = {}
-        all_questions = load_questions()
-        for q in all_questions:
-            if q["id"] not in self.questions:
-                self.questions[q["id"]] = []
-            self.questions[q["id"]].append(q)
+        self.q_manager = QuestionManager()  # Re-initialize to load questions into the manager
 
     def start_fade(self, next_state):
 
@@ -516,7 +508,7 @@ class Game:
 
 
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
-                                intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
+                                intro_file = os.path.join(AUDIO_DIR, f"Prof{self.current_level+1}Intro.wav")
                                 self.sound.play_voice(intro_file)
 
                             # Click outside the focused card cancels selection
