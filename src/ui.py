@@ -76,15 +76,22 @@ class Button:
             txt_color = (160, 160, 160) # muted text
         elif self.rect.collidepoint(mouse_pos):
             bg_color = self.hover_color
-            border_color = WHITE
+            border_color = BLACK
             txt_color = BLACK
         else:
             bg_color = self.base_color
             border_color = BLACK
             txt_color = BLACK
 
-        # Draw button
-        pygame.draw.rect(screen, bg_color, self.rect, border_radius=5)
+        # Draw button (support transparent backgrounds)
+        if isinstance(bg_color, (list, tuple)) and len(bg_color) == 4 and bg_color[3] == 0:
+            pass
+        elif isinstance(bg_color, (list, tuple)) and len(bg_color) == 4:
+            bg_surface = pygame.Surface((self.rect.w, self.rect.h), pygame.SRCALPHA)
+            bg_surface.fill(bg_color)
+            screen.blit(bg_surface, (self.rect.x, self.rect.y))
+        else:
+            pygame.draw.rect(screen, bg_color, self.rect, border_radius=5)
         pygame.draw.rect(screen, border_color, self.rect, 2, border_radius=5)
 
         # Draw text lines

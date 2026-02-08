@@ -59,6 +59,15 @@ class Game:
                 print(f"Error loading cursor: {e}")
         self.cursor_rect = self.custom_cursor.get_rect() if self.custom_cursor else None
 
+        # Load notebook paper background for answer choices
+        self.notebook_paper_img = None
+        notebook_path = os.path.join(BASE_DIR, "assets", "ui", "notebook_paper.webp")
+        if os.path.exists(notebook_path):
+            try:
+                self.notebook_paper_img = pygame.image.load(notebook_path).convert_alpha()
+            except Exception as e:
+                print(f"Error loading notebook paper: {e}")
+
         # Initialize question manager
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
@@ -936,7 +945,17 @@ class Game:
             SCREEN_WIDTH - ui_margin*2,
             int(SCREEN_HEIGHT * 0.15))
         
-        pygame.draw.rect(self.screen, BLACK, ui_rect.inflate(0, 10), border_radius=15)
+        if self.notebook_paper_img:
+            bg_rect = ui_rect.inflate(0, 10)
+            bg_img = pygame.transform.smoothscale(self.notebook_paper_img, (bg_rect.w, bg_rect.h))
+            paper_surface = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
+            paper_surface.blit(bg_img, (0, 0))
+            mask_surface = pygame.Surface((bg_rect.w, bg_rect.h), pygame.SRCALPHA)
+            pygame.draw.rect(mask_surface, (255, 255, 255, 255), mask_surface.get_rect(), border_radius=15)
+            paper_surface.blit(mask_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+            self.screen.blit(paper_surface, (bg_rect.x, bg_rect.y))
+        else:
+            pygame.draw.rect(self.screen, BLACK, ui_rect.inflate(0, 10), border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
      
@@ -986,9 +1005,29 @@ class Game:
             total_width = (num_choices * btn_width) + ((num_choices - 1) * btn_spacing)
             start_x = (SCREEN_WIDTH - total_width) / 2
 
+            # Draw notebook paper background behind answer choices
+            """
+            if self.notebook_paper_img:
+                pad_x = int(SCREEN_WIDTH * 0.02)
+                pad_y = int(SCREEN_HEIGHT * 0.02)
+                bg_w = int(total_width + (2 * pad_x))
+                bg_h = int(int(SCREEN_HEIGHT * 0.12) + (2 * pad_y))
+                bg_x = int(start_x - pad_x)
+                bg_y = int(SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11) - pad_y)
+                bg_img = pygame.transform.smoothscale(self.notebook_paper_img, (bg_w, bg_h))
+                self.screen.blit(bg_img, (bg_x, bg_y))
+            """
             for i, opt in enumerate(self.current_q['choices']):
                 x = start_x + (i * (btn_width + btn_spacing))
-                btn = Button(opt, int(x), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CREAM)
+                btn = Button(
+                    opt,
+                    int(x),
+                    SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11),
+                    btn_width,
+                    int(SCREEN_HEIGHT * 0.12),
+                    (0, 0, 0, 0),
+                    GOLD
+                )
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
