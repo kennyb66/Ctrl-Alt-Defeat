@@ -332,9 +332,9 @@ class Game:
             self.screen.blit(overlay, (0,0))
             
             # Draw scroll background
-            scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
-            scroll_y = SCREEN_HEIGHT//4
-            self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
+            #scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
+            #scroll_y = SCREEN_HEIGHT//4
+            #self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
             
             draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
             instructions = [
