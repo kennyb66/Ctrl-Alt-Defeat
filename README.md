@@ -7,7 +7,13 @@
 ### Features:
 - 2D style fighting mechanics
 - Computer science based trivia
-- Custom AI voice-lines generated through [Eleven Labs](https://elevenlabs.io/)
+- Custom AI voice-lines generated through Eleven Labs
+
+### Tech Stack
+- Pygame
+- [Eleven Labs](https://elevenlabs.io/)
+- [Liberated Pixel Cup](https://lpc.opengameart.org/)
+- JSON Encoding/Decoding
 
 ### Challenges
 - Working with branching and resolving merge conflicts.
