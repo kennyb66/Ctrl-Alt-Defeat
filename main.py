@@ -19,12 +19,16 @@ pygame.mixer.init()  # This is required to play sounds
 class Game:
     def __init__(self):
         pygame.init()
-        # macOS specific: center the window
+        # Center the window on all platforms (Windows, macOS, Linux)
         os.environ['SDL_VIDEO_CENTERED'] = '1'
         
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
         
+        # Get actual screen dimensions after fullscreen is set (fixes Windows centering)
+        global SCREEN_WIDTH, SCREEN_HEIGHT
+        SCREEN_WIDTH = self.screen.get_width()
+        SCREEN_HEIGHT = self.screen.get_height()
         # Responsive fonts
         self.font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.025))
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
