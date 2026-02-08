@@ -38,9 +38,9 @@ class Game:
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
         
         # Load background images
-        scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.webp")
+        scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.png")
         self.scroll_bg = pygame.image.load(scroll_path)
-        self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.65), int(SCREEN_HEIGHT * 0.55)))
+        self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.85), int(SCREEN_HEIGHT * 0.65)))
         
         # Initialize question manager
         from src.dataGen import QuestionManager
@@ -396,11 +396,11 @@ class Game:
             self.screen.blit(overlay, (0,0))
             
             # Draw scroll background
-            #scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
-            #scroll_y = SCREEN_HEIGHT//4
-            #self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
+            scroll_x = SCREEN_WIDTH//2 - self.scroll_bg.get_width()//2
+            scroll_y = SCREEN_HEIGHT//4
+            self.screen.blit(self.scroll_bg, (scroll_x, scroll_y))
             
-            draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
+            draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.13), self.font, BLACK, True)
             instructions = [
                 "1. Pick your Student character.",
                 "2. Attack to lower the Professor's HP.",
@@ -409,8 +409,8 @@ class Game:
                 "5. Defeat all 3 professors to graduate."
             ]
             for i, line in enumerate(instructions):
-                draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
-            draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
+                draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.2) + (i * int(SCREEN_HEIGHT * 0.04)), self.font, BLACK)
+            draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, BLACK, True)
 
     def draw_character_preview(self, student, rect, facing="right"):
         frame = None
