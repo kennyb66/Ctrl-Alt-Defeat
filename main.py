@@ -191,7 +191,7 @@ class Game:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 220))
             self.screen.blit(overlay, (0,0))
-            pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH//4, SCREEN_HEIGHT//4, SCREEN_WIDTH//2, SCREEN_HEIGHT//2), 3)
+            pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH//6, SCREEN_HEIGHT//4, SCREEN_WIDTH//1.5, SCREEN_HEIGHT//2), 3)
             draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
             instructions = [
                 "1. Pick your Student character.",
@@ -201,7 +201,7 @@ class Game:
                 "5. Defeat all 3 professors to graduate."
             ]
             for i, line in enumerate(instructions):
-                draw_text(self.screen, line, SCREEN_WIDTH//4 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
+                draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
 
     def draw_character_select(self):
