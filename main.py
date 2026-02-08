@@ -837,7 +837,7 @@ class Game:
                         if self.btn_confirm.is_clicked(m_pos):
                             self.boss = self.profs[self.selected_door["level"]]
                             self.start_fade(BATTLE)
-                            intro_file = f"assets/audio//Prof{self.boss.bossId}Intro.wav"
+                            intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
                             if self.boss.bossId == 2 or self.boss.bossId == 3:
                                 self.sound.play_voice(intro_file, volume = 0.3)  # Play a random voiceline for the boss when they enter"
                             else:
