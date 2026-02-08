@@ -340,9 +340,6 @@ class Game:
                 if is_near and is_unlocked and i not in self.doors_previously_near:
                     door_sound_path = os.path.join(SFX_DIR, "dragon-studio-opening-door-sfx-454240.mp3")
                     self.sound.play_sfx(door_sound_path, volume=0.5)
-        
-        # Update tracking for next frame
-                self.doors_previously_near = doors_currently_near
                 
                 # Choose image based on proximity
                 # door_upclose_img is actually your "cracked" version here
@@ -368,6 +365,8 @@ class Game:
                 self.screen.blit(display_img, (screen_x, door_y))
                 door["rect"] = pygame.Rect(screen_x, door_y, self.door_w, self.door_h)
 
+        # Update tracking for next frame
+        self.doors_previously_near = doors_currently_near
 
         # trying to fix the Cs Get Degrees error
         player_draw_x = self.player_screen_x - int(SCREEN_WIDTH * 0.04)
