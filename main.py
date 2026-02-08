@@ -41,6 +41,9 @@ class Game:
         self.selected_idx = None
         self.current_level = 0
 
+        self.floor_h = int(SCREEN_HEIGHT * 0.20)   # replaces the hardcoded 200
+        self.floor_y = SCREEN_HEIGHT - self.floor_h
+
         self.show_exit_prompt = False
 
         self.victory_timer = 0
@@ -86,16 +89,22 @@ class Game:
 
 
         # Hallway Variables
-        self.player_world_x = 400
+        self.player_world_x = int(SCREEN_WIDTH * 0.2)
+
         self.hallway_width = SCREEN_WIDTH * 4  # Make it MUCH longer (was * 2)
         self.camera_x = 0
         self.selected_door = None
 
+        self.door_w = int(SCREEN_WIDTH * 0.15)
+        self.door_h = int(SCREEN_HEIGHT * 0.38)
+        self.door_interact_dist = int(SCREEN_WIDTH * 0.05)
+        self.door_y = self.floor_y - self.door_h
         # Define 3 Door locations - SPREAD THEM OUT MORE
+
+        door_positions = [0.1, 0.2, 0.3]
         self.door_locations = [
-            {"x": 600, "level": 0, "rect": None},      # Was 600
-            {"x": 1200, "level": 1, "rect": None},     # Was 1200
-            {"x": 1800, "level": 2, "rect": None}      # Was 1800
+            {"x": int(self.hallway_width * p), "level": i, "rect": None}
+            for i, p in enumerate(door_positions)
         ]
         
         # Load Door Assets
@@ -103,7 +112,7 @@ class Game:
             self.door_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door.png")).convert_alpha()
             self.door_upclose_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door_cracked.png")).convert_alpha()
             # Scale them appropriately
-            self.door_img = pygame.transform.scale(self.door_img, (200, 350))
+            self.door_img = pygame.transform.scale(self.door_img, (self.door_w, self.door_h))
             self.door_upclose_img = pygame.transform.scale(self.door_upclose_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         except:
             # Fallback if images don't exist yet
@@ -124,7 +133,7 @@ class Game:
                 idle_frames=2
             ),
             Student(
-                "4.0 Medallion", 400, 20,
+                "4.0 Medallion", 100, 20,
                 "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
                 "Academic Excellence!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
@@ -180,7 +189,9 @@ class Game:
         
         # 1. DRAW FLOOR (Relative to camera)
         # This creates a floor that spans the whole hallway width
-        pygame.draw.rect(self.screen, (45, 45, 50), (-self.camera_x, SCREEN_HEIGHT - 200, self.hallway_width, 200))
+        pygame.draw.rect(self.screen, (45,45,50),
+                 (-self.camera_x, self.floor_y, self.hallway_width, self.floor_h))
+
         
         # 2. DRAW DOORS
         for i, door in enumerate(self.door_locations):
@@ -189,7 +200,8 @@ class Game:
             if -200 < screen_x < SCREEN_WIDTH:
                 # CHECK PROXIMITY: If player is within 100 pixels of the door
                 distance = abs(self.player_world_x - door["x"])
-                is_near = distance < 100
+                is_near = distance < int(SCREEN_WIDTH * 0.05)
+
              
                 
                 # Choose image based on proximity
@@ -201,7 +213,9 @@ class Game:
                 
                 # If it's the cracked version, we need to scale it down for the hallway view
                 if is_near:
-                    display_img = pygame.transform.scale(img_to_use, (200, 350))
+                    door_w = self.door_w
+                    door_h = self.door_h
+                    display_img = pygame.transform.scale(img_to_use, (door_w, door_h))
                 else:
                     display_img = img_to_use
 
@@ -210,8 +224,10 @@ class Game:
                     display_img = display_img.copy()
                     display_img.fill((40, 40, 40), special_flags=pygame.BLEND_RGB_MULT)
                 
-                self.screen.blit(display_img, (screen_x, SCREEN_HEIGHT - 550))
-                door["rect"] = pygame.Rect(screen_x, SCREEN_HEIGHT - 550, 200, 350)
+                door_y = self.door_y
+                self.screen.blit(display_img, (screen_x, door_y))
+                door["rect"] = pygame.Rect(screen_x, door_y, self.door_w, self.door_h)
+
 
         # 3. DRAW PLAYER (Centered on screen)
         self.player.draw(self.screen, self.player_screen_x - 75, SCREEN_HEIGHT - 450)
@@ -222,8 +238,17 @@ class Game:
             
             draw_text(self.screen, "Return to Menu?", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, WHITE, True)
             
-            self.btn_exit_yes = Button("YES", SCREEN_WIDTH//2 - 160, SCREEN_HEIGHT//2 + 50, 140, 60, OU_CRIMSON)
-            self.btn_exit_no = Button("NO", SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 50, 140, 60, GRAY)
+            btn_w = int(SCREEN_WIDTH * 0.07)
+            btn_h = int(SCREEN_HEIGHT * 0.07)
+            gap = int(SCREEN_WIDTH * 0.02)
+
+            total_w = btn_w * 2 + gap
+            start_x = SCREEN_WIDTH//2 - total_w//2
+            btn_y = SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.05)
+
+            self.btn_exit_yes = Button("YES", start_x, btn_y, btn_w, btn_h, OU_CRIMSON)
+            self.btn_exit_no  = Button("NO",  start_x + btn_w + gap, btn_y, btn_w, btn_h, GRAY)
+
             
             self.btn_exit_yes.draw(self.screen, self.font)
             self.btn_exit_no.draw(self.screen, self.font)
@@ -247,9 +272,21 @@ class Game:
         self.btn_back.draw(self.screen, self.font)
 
     def update_hallway(self):
+        if self.victory_stage > 0:
+            self.player.update() 
+            return
         keys = pygame.key.get_pressed()
         speed = 10
-        
+        if keys[pygame.K_e]:
+            for i, door in enumerate(self.door_locations):
+                distance = abs(self.player_world_x - door["x"])
+                is_near = distance < self.door_interact_dist
+                is_unlocked = door["level"] <= self.current_level
+                if is_near and is_unlocked:
+                    self.selected_door = door
+                    self.state = DOOR_VIEW
+                   # self.start_fade(DOOR_VIEW)
+                    break
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
             self.player_world_x -= speed
             self.player.facing = "left"
@@ -308,10 +345,34 @@ class Game:
 
 
     def draw_menu(self):
+        side_margin = 0.025 * SCREEN_WIDTH
+
+        help_w = 0.026 * SCREEN_WIDTH
+        quit_w = 0.063 * SCREEN_WIDTH
+
+        help_x = side_margin
+        quit_x = SCREEN_WIDTH - side_margin - quit_w
+
         draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - int(SCREEN_HEIGHT * 0.05), self.title_font, OU_CRIMSON, True)
         self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
-        self.btn_help = Button("?", int(SCREEN_WIDTH * 0.013), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08), int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), GRAY)
-        self.btn_quit = Button("QUIT", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08), int(SCREEN_WIDTH * 0.063), int(SCREEN_HEIGHT * 0.05), GRAY)
+        self.btn_help = Button(
+            "?",
+            int(help_x),
+            SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08),
+            int(help_w),
+            int(SCREEN_HEIGHT * 0.05),
+            GRAY
+        )
+
+        self.btn_quit = Button(
+            "QUIT",
+            int(quit_x),
+            SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08),
+            int(quit_w),
+            int(SCREEN_HEIGHT * 0.05),
+            GRAY
+        )
+
         
         self.btn_start.draw(self.screen, self.font)
         self.btn_help.draw(self.screen, self.font)
@@ -398,7 +459,8 @@ class Game:
     def draw_battle(self):
         # Floor
         pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.3), SCREEN_WIDTH, int(SCREEN_HEIGHT * 0.3)))
-        
+        ui_margin = int(SCREEN_WIDTH * 0.026)
+
         self.player.draw(self.screen, int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.55))
         boss_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.65)
 
@@ -415,25 +477,49 @@ class Game:
 
         self.boss.draw(self.screen, self.boss_x, boss_y)
 
-        
+        btn_width = int(SCREEN_WIDTH * 0.12)
+        btn_height = int(SCREEN_HEIGHT * 0.055)
+        btn_spacing = int(SCREEN_WIDTH * 0.015)
+        btn_width = int(SCREEN_WIDTH * 0.16)
+        btn_spacing = int(SCREEN_WIDTH * 0.015)
+        btn_margin = int(SCREEN_WIDTH * 0.05)
         # UI Header
+        player_hp_display = max(0, self.player.hp)  # clamp to 0
         p_hp_ratio = self.player.hp / self.player.max_hp
         b_hp_ratio = self.boss.hp / self.boss.max_hp
         hp_bar_w = int(SCREEN_WIDTH * 0.18)
         hp_bar_h = int(SCREEN_HEIGHT * 0.03)
-        pygame.draw.rect(self.screen, OU_CRIMSON, (int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
-        pygame.draw.rect(self.screen, GREEN, (int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), hp_bar_w * p_hp_ratio, hp_bar_h))
-        draw_text(self.screen, f"{self.player.name}: {self.player.hp} HP", int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.02), self.font)
+        hp_y = int(SCREEN_HEIGHT * 0.05)
+        text_y = int(SCREEN_HEIGHT * 0.02)
 
-        pygame.draw.rect(self.screen, OU_CRIMSON, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
-        pygame.draw.rect(self.screen, GREEN, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w * b_hp_ratio, hp_bar_h))
-        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.25), int(SCREEN_HEIGHT * 0.02), self.font)
+        # Player HP (left)
+        pygame.draw.rect(self.screen, OU_CRIMSON, (ui_margin, hp_y, hp_bar_w, hp_bar_h))
+        pygame.draw.rect(self.screen, GREEN, (ui_margin, hp_y, hp_bar_w * p_hp_ratio, hp_bar_h))
+        draw_text(self.screen, f"{self.player.name}: {player_hp_display} HP", ui_margin, text_y, self.font)
+
+        # Boss HP (right, mirrored)
+        boss_hp_display = max(0, self.boss.hp)  # clamp to 0
+
+        boss_bar_x = SCREEN_WIDTH - ui_margin - hp_bar_w
+        pygame.draw.rect(self.screen, OU_CRIMSON, (boss_bar_x, hp_y, hp_bar_w, hp_bar_h))
+        pygame.draw.rect(self.screen, GREEN, (boss_bar_x, hp_y, hp_bar_w * b_hp_ratio, hp_bar_h))
+        boss_text = f"{self.boss.name}: {boss_hp_display} HP"
+        text_surface = self.font.render(boss_text, True, WHITE)
+        text_x = SCREEN_WIDTH - ui_margin - text_surface.get_width()
+        self.screen.blit(text_surface, (text_x, text_y))
+
+
 
         # Control Box
-        ui_rect = pygame.Rect(int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18), SCREEN_WIDTH - int(SCREEN_WIDTH * 0.052), int(SCREEN_HEIGHT * 0.15))
+        ui_rect = pygame.Rect(ui_margin,
+            SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18),
+            SCREEN_WIDTH - ui_margin*2,
+            int(SCREEN_HEIGHT * 0.15))
+
         pygame.draw.rect(self.screen, BLACK, ui_rect, border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
+        
         # --- Combat Text Animation ---
         if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
             # float upward
@@ -449,12 +535,14 @@ class Game:
             line_height = big_font.get_height()
             
             # Render each line
+
+            
             for i, line in enumerate(lines):
                 txt_surface = big_font.render(line, True, self.combat_text_color)
                 txt_surface.set_alpha(alpha)
                 
                 # Position from left side of screen, offset each line
-                text_x = int(SCREEN_WIDTH * 0.026)
+                text_x = ui_margin
                 text_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.6) + self.combat_text_y_offset + (i * line_height)
                 
                 self.screen.blit(txt_surface, (text_x, text_y))
@@ -484,24 +572,45 @@ class Game:
             )
             self.answer_btns = []
             num_choices = len(self.current_q['choices'])
-            btn_width = int(SCREEN_WIDTH * 0.16)
-            btn_spacing = int(SCREEN_WIDTH * 0.015)
+            
             total_width = (num_choices * btn_width) + ((num_choices - 1) * btn_spacing)
-            start_x = (SCREEN_WIDTH - total_width) // 2
+            start_x = (SCREEN_WIDTH - total_width) / 2
 
             for i, opt in enumerate(self.current_q['choices']):
                 x = start_x + (i * (btn_width + btn_spacing))
-                btn = Button(opt, x, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CRIMSON)
+                btn = Button(opt, int(x), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CRIMSON)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
-            draw_text(self.screen, self.battle_log, int(SCREEN_WIDTH * 0.042), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), self.font)
-            btn_width = int(SCREEN_WIDTH * 0.12)
-            btn_height = int(SCREEN_HEIGHT * 0.055)
-            btn_spacing = int(SCREEN_WIDTH * 0.015)
-            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - (2 * btn_width + btn_spacing) - int(SCREEN_WIDTH * 0.035), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY)
+            text_margin = int(SCREEN_WIDTH * 0.05)  # 5% of screen width from the left edge
+            draw_text(
+                self.screen,
+                self.battle_log,
+                text_margin,
+                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12),
+                self.font
+            )
+            
             heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - btn_width - int(SCREEN_WIDTH * 0.035), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY, disabled=heal_disabled)
+
+            self.btn_atk = Button(
+                "ATTACK",
+                SCREEN_WIDTH - btn_margin - 2*btn_width - btn_spacing,
+                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105),
+                btn_width,
+                btn_height,
+                GRAY
+            )
+
+            self.btn_heal = Button(
+                "HEAL",
+                SCREEN_WIDTH - btn_margin - btn_width,
+                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105),
+                btn_width,
+                btn_height,
+                GRAY,
+                disabled=heal_disabled
+            )
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
@@ -547,7 +656,7 @@ class Game:
 
                 if self.boss.hp <= 0: 
                     self.boss.play_animation("hurt", "up", 5, freeze_last=True)
-                    self.player.play_animation("spellcast", "left", 6, freeze_last=True)
+                    self.player.play_animation("spellcast", "right", 6, freeze_last=True)
                     self.victory_timer = pygame.time.get_ticks()
                     self.victory_stage = 1
                     self.is_player_victory = True
@@ -682,7 +791,7 @@ class Game:
                             for i, door in enumerate(self.door_locations):
                                 # Check if door is clickable: must be unlocked AND player is near
                                 distance = abs(self.player_world_x - door["x"])
-                                is_near = distance < 100
+                                is_near = distance < self.door_interact_dist
                                 is_unlocked = door["level"] <= self.current_level
                                 
                                 if door["rect"] and door["rect"].collidepoint(m_pos) and is_unlocked and is_near:

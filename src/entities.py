@@ -92,6 +92,7 @@ class AnimatedEntity:
             self.override_frames = frames
             self.override_index = 0
             self.freeze_last_frame = freeze_last
+            
 
     def set_state(self, new_state):
         if self.state != new_state:
@@ -132,7 +133,9 @@ class AnimatedEntity:
     def update(self):
         self.update_animation()
     def draw(self, screen, x, y):
-        self.update_animation()
+        if not (self.freeze_last_frame and self.override_frames and 
+            self.override_index >= len(self.override_frames) - 1):
+            self.update_animation()
 
         if self.override_frames:
             frame = self.override_frames[self.override_index]
@@ -142,18 +145,6 @@ class AnimatedEntity:
             frame = current_frames[self.current_frame]
 
         screen.blit(frame, (x, y))
-
-
-        '''
-        # Drawing a rectangle as a placeholder for the sprite
-        # In a real game, you'd blit: screen.blit(self.frames[self.state][self.frame_index], (x, y + self.offset_y))
-        rect_height = 200 if self.state == IDLE else 180
-        color = self.color if self.state == IDLE else WHITE
-        pygame.draw.rect(screen, color, (x, y + self.offset_y, 150, rect_height), border_radius=10)
-        # Eye level indicator to see "bouncing"
-        pygame.draw.rect(screen, BLACK, (x + 30, y + self.offset_y + 40, 20, 20))
-        pygame.draw.rect(screen, BLACK, (x + 100, y + self.offset_y + 40, 20, 20))
-        '''
 
 class Student(AnimatedEntity):
     def __init__(self, name, hp, attack_power, ability_desc, win_msg,
