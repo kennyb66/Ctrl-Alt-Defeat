@@ -19,4 +19,4 @@ GOLD = (255, 215, 0)
 # Game States
 MENU, SELECT, BATTLE, WIN, LOSS = "MENU", "SELECT", "BATTLE", "WIN", "LOSS"
 # Animation States
-IDLE, ACTION = "IDLE", "ACTION"
+IDLE, ACTION, WALK = "IDLE", "ACTION", "WALK"
