@@ -824,6 +824,15 @@ class Game:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT: running = False
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE: running = False
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_p and self.state == BATTLE:
+                    self.boss.hp = 0  # Instantly defeat the boss
+                    self.boss.play_animation("hurt", "up", 5, freeze_last=True)
+                    self.player.play_animation("spellcast", "right", 6, freeze_last=True)
+                    self.victory_timer = pygame.time.get_ticks()
+                    self.victory_stage = 1
+                    self.is_player_victory = True
+                    self.sound.clear_music()
+                    self.sound.play_voice(os.path.join(SFX_DIR, f"win-sound.wav"), volume=0.3)
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if self.show_how_to_play:
@@ -909,6 +918,10 @@ class Game:
                             self.boss.hp = self.boss.max_hp
                             self.player.set_state(IDLE)
                             self.boss.set_state(IDLE)
+
+                            self.boss.override_frames = None
+                            self.boss.override_index = 0
+                            self.boss.freeze_last_frame = False
                     
                             self.start_fade(BATTLE)
                             self.boss_entering = True
@@ -922,6 +935,7 @@ class Game:
                         if self.state == WIN and self.current_level < 2:
                             self.current_level += 1
                             self.battle_log = f"Level {self.current_level + 1} Unlocked!"
+                        #add somethign to let me press "P" and simulate a level win for demo purposes
                         elif self.state == LOSS:
                             self.battle_log = "Try again, student!"
 
