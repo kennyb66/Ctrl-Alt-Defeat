@@ -38,7 +38,10 @@ class Game:
         self.show_how_to_play = False
         self.selected_idx = None
         self.current_level = 0
-        
+
+        self.victory_timer = 0
+        self.victory_stage = 0 
+        self.is_player_victory = True
         # Initialize buttons as None to prevent AttributeErrors
         self.btn_start = None
         self.btn_help = None
@@ -60,6 +63,24 @@ class Game:
         self.combat_text = ""
         self.combat_text_timer = 0
         self.combat_text_y_offset = 0
+
+        # Screen fade transition
+        self.fading = False
+        self.fade_alpha = 0
+        self.fade_speed = 12
+        self.fade_direction = 1   # 1 = fade to black, -1 = fade from black
+        self.next_state = None
+
+        self.fade_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.fade_surface.fill(BLACK)
+
+        # Boss entrance animation
+        self.boss_entering = False
+        self.boss_x = SCREEN_WIDTH + 200
+        self.boss_target_x = SCREEN_WIDTH - 450
+        self.boss_walk_speed = 6
+
+
 
     def setup_data(self):
         self.roster = [
@@ -125,6 +146,34 @@ class Game:
             if q["id"] not in self.questions:
                 self.questions[q["id"]] = []
             self.questions[q["id"]].append(q)
+
+    def start_fade(self, next_state):
+
+        self.fading = True
+        self.fade_direction = 1
+        self.fade_alpha = 0
+        self.next_state = next_state
+
+    def handle_fade(self):
+        if not self.fading:
+            return
+
+        self.fade_alpha += self.fade_speed * self.fade_direction
+
+        # reached full black → switch state → fade back in
+        if self.fade_alpha >= 255:
+            self.fade_alpha = 255
+            self.state = self.next_state
+            self.fade_direction = -1
+
+        # finished fading back in
+        elif self.fade_alpha <= 0:
+            self.fade_alpha = 0
+            self.fading = False
+
+        self.fade_surface.set_alpha(self.fade_alpha)
+        self.screen.blit(self.fade_surface, (0, 0))
+
 
     def draw_menu(self):
         draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, OU_CRIMSON, True)
@@ -207,17 +256,34 @@ class Game:
             self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60, OU_CRIMSON)
             self.btn_confirm.draw(self.screen, self.font)
 
-    def show_combat_text(self, text):
+    def show_combat_text(self, text, color=GRAY):
         self.combat_text = text
-        self.combat_text_timer = pygame.time.get_ticks() + 2000  # 1 second
+        self.combat_text_color = color
+        self.combat_text_timer = pygame.time.get_ticks() + 2000
         self.combat_text_y_offset = -30
+
 
     def draw_battle(self):
         # Floor
         pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT-300, SCREEN_WIDTH, 300))
         
         self.player.draw(self.screen, 250, SCREEN_HEIGHT - 550)
-        self.boss.draw(self.screen, SCREEN_WIDTH - 450, SCREEN_HEIGHT - 650)
+        boss_y = SCREEN_HEIGHT - 650
+
+        # ----- Boss entrance walking -----
+        if self.boss_entering:
+            self.boss.set_state(WALK)
+
+            self.boss.set_state(WALK)
+            self.boss_x -= self.boss_walk_speed
+
+            if self.boss_x <= self.boss_target_x:
+                self.boss_x = self.boss_target_x
+                self.boss_entering = False
+                self.boss.set_state(IDLE)
+
+        self.boss.draw(self.screen, self.boss_x, boss_y)
+
         
         # UI Header
         p_hp_ratio = self.player.hp / self.player.max_hp
@@ -246,7 +312,8 @@ class Game:
             
             # BIG dramatic font
             big_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.06), bold=True)
-            txt_surface = big_font.render(self.combat_text, True, GOLD)
+            txt_surface = big_font.render(self.combat_text, True, self.combat_text_color)
+
             txt_surface.set_alpha(alpha)
 
             # position above player
@@ -298,19 +365,56 @@ class Game:
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
+    
+        if self.victory_stage > 0:
+            elapsed = pygame.time.get_ticks() - self.victory_timer
+            
+            if self.victory_stage == 1 and elapsed > 2000:  # Changed from 600 - almost immediate
+                self.victory_stage = 2
+                self.victory_timer = pygame.time.get_ticks()
+            
+            elif self.victory_stage == 2 and elapsed > 100:  # Changed from 3000 - just enough to see pose
+                self.victory_stage = 3  # NEW stage - holding pose during fade
+                
+                # Fade to appropriate state based on outcome
+                if self.is_player_victory:
+                    self.start_fade(WIN)
+                    self.boss_entering = True
+                    self.boss_x = SCREEN_WIDTH + 200
+                else:
+                    self.start_fade(LOSS)
+            
+            # Stage 3: animations are frozen, fade is happening - do nothing, just keep drawing
+
     def handle_battle_click(self, mouse_pos):
+        if self.boss_entering or self.victory_stage > 0:
+            return
+
         if not self.show_question:
             if self.btn_atk and self.btn_atk.is_clicked(mouse_pos):
-                dmg, msg = self.player.calculate_attack()
-                self.boss.hp -= dmg
+                dmg, msg, is_special = self.player.calculate_attack()
+                self.show_combat_text(msg, GOLD if is_special else GRAY)
 
-                self.show_combat_text(msg)
+                self.boss.hp -= dmg
+                self.player.play_animation("slash", "right", 6)
+                self.boss.play_animation("hurt", "up", 3)
+
+
+                
                 self.battle_log = f"You dealt {dmg} damage!"
 
                 #or self.show_combat_text(msg) ## self.battle_log = f"You dealt {dmg} damage!"
 
-                
-                if self.boss.hp <= 0: self.state = WIN
+                if self.boss.hp <= 0: 
+                    self.boss.play_animation("hurt", "up", 5, freeze_last=True)
+                    self.player.play_animation("spellcast", "left", 6, freeze_last=True)
+                    self.victory_timer = pygame.time.get_ticks()
+                    self.victory_stage = 1
+                    self.is_player_victory = True
+                   # self.boss_entering = True
+                   # self.boss_x = SCREEN_WIDTH + 200
+
+
                 else:
                     # Pull a random question for this boss
                     self.show_question = True
@@ -318,10 +422,11 @@ class Game:
                     play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
 
             elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
-                amt, msg = self.player.get_heal_amount()
+                amt, msg, is_special = self.player.get_heal_amount()
+                self.show_combat_text(msg, GOLD if is_special else GRAY)
+
                 self.player.hp = min(self.player.max_hp, self.player.hp + amt)
               #  self.player.say(msg) # Player says they healed
-                self.show_combat_text(msg)
 
                 
                 self.show_question = True
@@ -343,6 +448,9 @@ class Game:
                         else:
                             dmg = self.boss.attack_power
                             self.player.hp -= dmg
+                            self.boss.play_animation("spellcast", "down", 7)
+                            self.player.play_animation("hurt", "up", 3)
+
                             self.battle_log = f"INCORRECT! Lost {dmg} HP!"
 
                     # Done showing the question
@@ -350,8 +458,12 @@ class Game:
 
                     # Check if the player lost all HP
                     if self.player.hp <= 0:
-                        self.state = LOSS
-
+                        self.player.play_animation("hurt", "up", 5, freeze_last=True)
+                        self.boss.play_animation("spellcast", "left", 6, freeze_last=True)
+                        self.victory_timer = pygame.time.get_ticks()
+                        self.victory_stage = 1
+                        self.is_player_victory = False
+               
 
 
     def run(self):
@@ -391,7 +503,11 @@ class Game:
                             if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
                                 self.player = self.roster[self.selected_idx]
                                 self.boss = self.profs[self.current_level]
-                                self.state = BATTLE
+                                self.start_fade(BATTLE)
+                                self.boss_entering = True
+                                self.boss_x = SCREEN_WIDTH + 200
+
+
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
                                 intro_file = os.path.join(AUDIO_DIR, f"Prof{self.boss.bossId}Intro.wav")
                                 play_audio_clip(intro_file)
@@ -406,15 +522,24 @@ class Game:
                         if self.state == WIN and self.current_level < 2:
                             self.current_level += 1
                             self.player.hp = self.player.max_hp
+                            
+                            self.player.override_frames = None
+                            self.player.override_index = 0
+                            self.player.set_state(IDLE)
+                            
                             self.boss = self.profs[self.current_level]
-                            self.state = BATTLE
+                            self.victory_stage = 0
+                            self.start_fade(BATTLE)
+                            self.boss_entering = True
+                            self.boss_x = SCREEN_WIDTH + 200
                             self.battle_log = f"Onto Level {self.current_level+1}!"
                         elif self.state == WIN:
                             # Final victory - click to quit
                             running = False
                         else:
                             # LOSS - return to menu
-                            self.state = MENU
+                            self.start_fade(MENU)
+
                             self.current_level = 0
                             self.selected_idx = None
                             self.show_question = False
@@ -432,6 +557,7 @@ class Game:
                 draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
                 draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
 
+            self.handle_fade()
             pygame.display.flip()
             self.clock.tick(60)
         pygame.quit()
