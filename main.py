@@ -1,3 +1,4 @@
+import math
 import pygame
 import random
 import os
@@ -27,7 +28,7 @@ class Game:
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
        
-        
+        self.flash_timer = 0
         # Get actual screen dimensions after fullscreen is set (fixes Windows centering)
         global SCREEN_WIDTH, SCREEN_HEIGHT
         SCREEN_WIDTH = self.screen.get_width()
@@ -406,26 +407,29 @@ class Game:
         if self.victory_stage > 0:
             self.player.update() 
             return
-        keys = pygame.key.get_pressed()
-        speed = 10
-        if keys[pygame.K_e]:
-            for i, door in enumerate(self.door_locations):
-                distance = abs(self.player_world_x - door["x"])
-                is_near = distance < self.door_interact_dist
-                is_unlocked = door["level"] <= self.current_level
-                if is_near and is_unlocked:
-                    self.selected_door = door
-                    self.state = DOOR_VIEW
-                   # self.start_fade(DOOR_VIEW)
-                    break
-        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            self.player_world_x -= speed
-            self.player.facing = "left"
-            self.player.set_state(WALK)
-        elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            self.player_world_x += speed
-            self.player.facing = "right"
-            self.player.set_state(WALK)
+        if not self.show_exit_prompt:
+            keys = pygame.key.get_pressed()
+            speed = 10
+            if keys[pygame.K_e]:
+                for i, door in enumerate(self.door_locations):
+                    distance = abs(self.player_world_x - door["x"])
+                    is_near = distance < self.door_interact_dist
+                    is_unlocked = door["level"] <= self.current_level
+                    if is_near and is_unlocked:
+                        self.selected_door = door
+                        self.state = DOOR_VIEW
+                    # self.start_fade(DOOR_VIEW)
+                        break
+            if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+                self.player_world_x -= speed
+                self.player.facing = "left"
+                self.player.set_state(WALK)
+            elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
+                self.player_world_x += speed
+                self.player.facing = "right"
+                self.player.set_state(WALK)
+            else:
+                self.player.set_state(IDLE)
         else:
             self.player.set_state(IDLE)
 
@@ -754,6 +758,9 @@ class Game:
             self.sound.play_music(os.path.join(SFX_DIR, f"Boss{boss_music_id}_music.wav"), volume=0.1)
             self.current_boss_music_id = boss_music_id
 
+
+       
+
         bg_index = self.boss.bossId - 1  # Convert boss ID (1,2,3) to index (0,1,2)
         if 0 <= bg_index < len(self.battle_backgrounds):
             self.screen.blit(self.battle_backgrounds[bg_index], (0, 0))
@@ -763,6 +770,32 @@ class Game:
 
         floor_height = int(SCREEN_HEIGHT * 0.3)
         floor_y = SCREEN_HEIGHT - floor_height
+         # Box dimensions
+        box_w, box_h = int(SCREEN_WIDTH * 0.225), int(SCREEN_HEIGHT * 0.09)
+        padding = 15
+        
+        # Check for Low Health (30%)
+        is_low_health = self.player and self.player.hp <= (self.player.max_hp * 0.3)
+        
+        for i, x_pos in enumerate([padding, SCREEN_WIDTH - box_w - padding]):
+            # Default: See-through Black
+            bg_color = (0, 0, 0, 160)
+            draw_x, draw_y = x_pos, padding
+
+            # If health is low AND this is the player's box (the first one in the loop)
+            if is_low_health and i == 0:
+                # Change to See-through Red
+                bg_color = (200, 0, 0, 180)
+                # Apply the Shake effect
+                draw_x += random.randint(-5, 5)
+                draw_y += random.randint(-5, 5)
+
+            # Create the transparent surface
+            box_surf = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+            pygame.draw.rect(box_surf, bg_color, (0, 0, box_w, box_h), border_radius=12)
+            
+            # Blit the box with the potential shake offset
+            self.screen.blit(box_surf, (draw_x, draw_y))
         if self.boss.bossId == 1:
     # Level 1: Grass texture
             grass_path = os.path.join(BASE_DIR, "assets", "backgrounds", "grass.png")
@@ -860,13 +893,11 @@ class Game:
             SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18),
             SCREEN_WIDTH - ui_margin*2,
             int(SCREEN_HEIGHT * 0.15))
-
-        pygame.draw.rect(self.screen, BLACK, ui_rect, border_radius=15)
+        
+        pygame.draw.rect(self.screen, BLACK, ui_rect.inflate(0, 10), border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
-        
-        # --- Combat Text Animation ---
-        # --- Combat Text Animation ---
+     
         if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
             # float upward
             self.combat_text_y_offset -= 0.5
@@ -929,7 +960,7 @@ class Game:
 
             for i, opt in enumerate(self.current_q['choices']):
                 x = start_x + (i * (btn_width + btn_spacing))
-                btn = Button(opt, int(x), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CRIMSON)
+                btn = Button(opt, int(x), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CREAM)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
@@ -983,8 +1014,17 @@ class Game:
                     self.boss_x = SCREEN_WIDTH + 200
                 else:
                     self.start_fade(LOSS)
-            
-            # Stage 3: animations are frozen, fade is happening - do nothing, just keep drawing
+        # Check if health is low
+        
+        if self.flash_timer > 0:
+            # Create a white surface the size of the screen
+            flash_surf = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            flash_surf.fill(WHITE)
+            # Set a high transparency (alpha)
+            flash_surf.set_alpha(100) 
+            self.screen.blit(flash_surf, (0,0))
+            self.flash_timer -= 1
+
 
     def handle_battle_click(self, mouse_pos):
         if self.boss_entering or self.victory_stage > 0:
@@ -1000,6 +1040,7 @@ class Game:
                 self.show_combat_text(msg, GOLD if is_special else GRAY)
 
                 self.boss.hp -= dmg
+                self.flash_timer = 5
                 self.player.play_animation("slash", "right", 6)
                 self.boss.play_animation("hurt", "up", 3)
 
@@ -1213,15 +1254,11 @@ class Game:
 
             self.handle_fade()
             
-            # Manage cursor visibility
-            if self.state == MENU:
-                pygame.mouse.set_visible(True)  # Show default cursor on menu only
-            else:
-                pygame.mouse.set_visible(False)  # Hide default cursor elsewhere
-                # Draw custom cursor
-                if self.custom_cursor:
-                    cursor_rect = self.custom_cursor.get_rect(topleft=m_pos)
-                    self.screen.blit(self.custom_cursor, cursor_rect)
+            pygame.mouse.set_visible(False)  # Hide default cursor elsewhere
+            # Draw custom cursor
+            if self.custom_cursor:
+                cursor_rect = self.custom_cursor.get_rect(topleft=m_pos)
+                self.screen.blit(self.custom_cursor, cursor_rect)
             
             pygame.display.flip()
             self.clock.tick(60)
