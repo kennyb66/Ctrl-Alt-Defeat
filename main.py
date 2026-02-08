@@ -133,7 +133,7 @@ class Game:
                 idle_frames=2
             ),
             Student(
-                "4.0 Medallion", 400, 20,
+                "4.0 Medallion", 100, 20,
                 "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
                 "Academic Excellence!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
