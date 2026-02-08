@@ -42,6 +42,19 @@ class Game:
         self.scroll_bg = pygame.image.load(scroll_path)
         self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.85), int(SCREEN_HEIGHT * 0.65)))
         
+        # Load custom cursor image
+        self.custom_cursor = None
+        cursor_path = os.path.join(BASE_DIR, "assets", "ui", "mouse cursor.png")
+        
+        if os.path.exists(cursor_path):
+            try:
+                self.custom_cursor = pygame.image.load(cursor_path)
+                self.custom_cursor = pygame.transform.scale(self.custom_cursor, (32, 32))
+                self.custom_cursor = self.custom_cursor.convert_alpha()  # Optimize for fast blitting
+                pygame.mouse.set_visible(False)  # Hide default cursor
+            except Exception as e:
+                print(f"Error loading cursor: {e}")
+        
         # Initialize question manager
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
@@ -970,6 +983,17 @@ class Game:
                 self.boss.hp = self.boss.max_hp
 
             self.handle_fade()
+            
+            # Manage cursor visibility
+            if self.state == MENU:
+                pygame.mouse.set_visible(True)  # Show default cursor on menu only
+            else:
+                pygame.mouse.set_visible(False)  # Hide default cursor elsewhere
+                # Draw custom cursor
+                if self.custom_cursor:
+                    cursor_rect = self.custom_cursor.get_rect(topleft=m_pos)
+                    self.screen.blit(self.custom_cursor, cursor_rect)
+            
             pygame.display.flip()
             self.clock.tick(60)
         pygame.quit()
