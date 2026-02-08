@@ -559,7 +559,7 @@ class Game:
             "?",
             int(help_x),
             SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08),
-            int(help_w),
+            int(SCREEN_HEIGHT * 0.05),
             int(SCREEN_HEIGHT * 0.05),
             OU_CREAM
         )
@@ -1049,7 +1049,7 @@ class Game:
                     btn_width,
                     int(SCREEN_HEIGHT * 0.12),
                     (0, 0, 0, 0),
-                    GOLD
+                    (212, 175, 55, 180)
                 )
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
