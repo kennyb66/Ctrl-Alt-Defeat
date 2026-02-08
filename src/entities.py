@@ -35,14 +35,15 @@ class AnimatedEntity:
 
             self.base_path = os.path.dirname(os.path.dirname(sprite_folder)) 
             self.all_frames = {
+                "left": {IDLE: [], WALK: [], ACTION: []},
                 "right": {IDLE: [], WALK: [], ACTION: []},
-                "left": {IDLE: [], WALK: [], ACTION: []}
+                "front": {IDLE: [], WALK: [], ACTION: []},
             }
             # This handles all the heavy lifting of loading PNGs
             self.load_all_directions()
             
             # Fill ACTION frames with empty surfaces if they weren't loaded
-            for d in ["left", "right"]:
+            for d in ["left", "right", "front"]:
                 if self.all_frames[d][IDLE]:
                     size = self.all_frames[d][IDLE][0].get_size()
                     if not self.all_frames[d][ACTION]:
@@ -59,7 +60,7 @@ class AnimatedEntity:
 
           
     def load_all_directions(self):
-        for d in ["left", "right"]:
+        for d in ["left", "right", "front"]:
             # Load Idle
             path = os.path.join(self.base_path, "idle", d)
             if os.path.exists(path):

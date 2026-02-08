@@ -26,6 +26,7 @@ class Game:
         
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
+       
         
         # Get actual screen dimensions after fullscreen is set (fixes Windows centering)
         global SCREEN_WIDTH, SCREEN_HEIGHT
@@ -42,6 +43,7 @@ class Game:
         self.scroll_bg = pygame.image.load(scroll_path)
         self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.85), int(SCREEN_HEIGHT * 0.65)))
         
+
         # Load custom cursor image
         self.custom_cursor = None
         cursor_path = os.path.join(BASE_DIR, "assets", "ui", "mouse cursor.png")
@@ -59,6 +61,36 @@ class Game:
         from src.dataGen import QuestionManager
         self.q_manager = QuestionManager()
         
+        hallway_path = os.path.join(BASE_DIR, "assets", "backgrounds", "hallway.png")
+        try:
+            h_img = pygame.image.load(hallway_path).convert()
+            scale = SCREEN_HEIGHT / h_img.get_height()
+            self.hallway_tex = pygame.transform.scale(h_img, (int(h_img.get_width() * scale), SCREEN_HEIGHT))
+        except:
+            self.hallway_tex = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+            self.hallway_tex.fill((30, 30, 35))
+
+        # 2. ADD THE SLICING CODE HERE:
+        self.hallway_w = self.hallway_tex.get_width()
+        self.mid_point = self.hallway_w // 2
+
+        # Slicing the texture into the "Entrance" and the "Looping Hall"
+        self.hallway_start = self.hallway_tex.subsurface((0, 0, self.mid_point, SCREEN_HEIGHT))
+        self.hallway_loop = self.hallway_tex.subsurface((self.mid_point, 0, self.mid_point, SCREEN_HEIGHT))
+        self.loop_w = self.hallway_loop.get_width()        
+
+        self.background_assets = {}
+        bg_names = ["title", "lost_sridhar", "lost_maiti", "lost_dioch", "class", "win_kris", "win_shri", "win_ken"]
+        for name in bg_names:
+            path = os.path.join(BASE_DIR, "assets", "backgrounds", f"{name}.png")
+            try:
+                img = pygame.image.load(path).convert()
+                self.background_assets[name] = pygame.transform.scale(img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+            except:
+                # Fallback if image is missing
+                fallback = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+                fallback.fill(BLACK)
+                self.background_assets[name] = fallback
 
         # Load Battle Backgrounds
         self.battle_backgrounds = []
@@ -172,6 +204,8 @@ class Game:
             self.door_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door.png")).convert_alpha()
             self.door_upclose_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door_cracked.png")).convert_alpha()
             # Scale them appropriately
+            self.door_nametage_img = pygame.image.load(os.path.join(BASE_DIR, "assets", "door_upclose.png")).convert_alpha()
+            self.door_nametage_img = pygame.transform.scale(self.door_nametage_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
             self.door_img = pygame.transform.scale(self.door_img, (self.door_w, self.door_h))
             self.door_upclose_img = pygame.transform.scale(self.door_upclose_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
         except:
@@ -181,8 +215,11 @@ class Game:
             self.door_upclose_img = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
             self.door_upclose_img.fill(GRAY)
 
-
-
+    def draw_transparent_rect(self, surface, color, rect, alpha):
+        s = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
+        r, g, b = color
+        s.fill((r, g, b, alpha))
+        surface.blit(s, (rect.x, rect.y))
     def setup_data(self):
         self.roster = [
             Student(
@@ -207,28 +244,36 @@ class Game:
                 idle_frames=2,
             )
         ]
-        
+        self.roster[0].hover_path = os.path.join(SPRITE_DIR, "swi", "standard", "thrust", "left", "3.png")
+        self.roster[1].hover_path = os.path.join(SPRITE_DIR, "kris", "standard", "thrust", "left", "3.png")
+        self.roster[2].hover_path = os.path.join(SPRITE_DIR, "ken", "standard", "thrust", "left", "3.png")
+        for s in self.roster:
+            try:
+                img = pygame.image.load(s.hover_path).convert_alpha()
+                s.hover_sprite = img
+            except:
+                s.hover_sprite = None
         self.profs = [
             Professor(
                 "Prof Sridhar", 150, 35,
                 "Logic is not O(1). You fail Data Structures.",
-                "Top Floor Devon",
+                "The Biz",
                 bossId=1,
                 sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
                 idle_frames=2
             ),
             Professor(
                 "Prof Diochnos", 200, 35,
-                "Model Underfitted. You fail ML.",
-                "The Clouds",
+                "This language is not decidable… and neither are you. You fail Theory.”",
+                "Turing Machine Terrace",
                 bossId=2,
                 sprite_folder=os.path.join(SPRITE_DIR, "dioch", "standard", "idle", "left"),
                 idle_frames=2
             ),
             Professor(
                 "Prof Maiti", 275, 35,
-                "Compiling error... You fail Java 2.",
-                "Library Lawn",
+                "Your hash has collisions. You fail Cryptography.",
+                "Bitcoin Boulevard",
                 bossId=3,
                 sprite_folder=os.path.join(SPRITE_DIR, "maiti", "standard", "idle", "left"),
                 idle_frames=2
@@ -244,13 +289,33 @@ class Game:
     # main.py
 
     def draw_hallway(self):
-        self.screen.fill((20, 20, 25))
+        start_screen_x = 0 - self.camera_x
+        if start_screen_x < SCREEN_WIDTH:
+            self.screen.blit(self.hallway_start, (start_screen_x, 0))
+
+        # 2. Draw the repeating Second Half
+        # We start drawing loops immediately after the mid_point
+        # Calculate where the first loop tile should begin relative to camera
+        first_loop_world_x = self.mid_point
+        
+        # Determine the offset for the repeating pattern
+        # This ensures the loop starts exactly where the first half ends
+        if self.camera_x < self.mid_point:
+            # We can still see the transition point
+            current_x = self.mid_point - self.camera_x
+        else:
+            # We are past the first half, calculate the tiling offset
+            offset = (self.camera_x - self.mid_point) % self.loop_w
+            current_x = -offset
+
+        # Tile the loop until the screen is filled
+        while current_x < SCREEN_WIDTH:
+            self.screen.blit(self.hallway_loop, (current_x, 0))
+            current_x += self.loop_w
         
         # 1. DRAW FLOOR (Relative to camera)
         # This creates a floor that spans the whole hallway width
-        pygame.draw.rect(self.screen, (45,45,50),
-                 (-self.camera_x, self.floor_y, self.hallway_width, self.floor_h))
-
+      
         
         # 2. DRAW DOORS
         for i, door in enumerate(self.door_locations):
@@ -298,7 +363,7 @@ class Game:
             overlay.fill((0, 0, 0, 180))
             self.screen.blit(overlay, (0, 0))
             
-            draw_text(self.screen, "Return to Menu?", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, WHITE, True)
+            draw_text(self.screen, "Return to Menu?", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 70, self.title_font, WHITE, True)
             
             btn_w = int(SCREEN_WIDTH * 0.07)
             btn_h = int(SCREEN_HEIGHT * 0.07)
@@ -308,27 +373,31 @@ class Game:
             start_x = SCREEN_WIDTH//2 - total_w//2
             btn_y = SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.05)
 
-            self.btn_exit_yes = Button("YES", start_x, btn_y, btn_w, btn_h, OU_CRIMSON)
-            self.btn_exit_no  = Button("NO",  start_x + btn_w + gap, btn_y, btn_w, btn_h, GRAY)
+            self.btn_exit_yes = Button("YES", start_x, btn_y, btn_w, btn_h, OU_CREAM)
+            self.btn_exit_no  = Button("NO",  start_x + btn_w + gap, btn_y, btn_w, btn_h, OU_CREAM)
 
             
             self.btn_exit_yes.draw(self.screen, self.font)
             self.btn_exit_no.draw(self.screen, self.font)
+    
 
     def draw_door_view(self):
-        # Full screen background
-        bg = pygame.transform.scale(self.door_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
-        self.screen.blit(bg, (0, 0))        
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 150))
-        self.screen.blit(overlay, (0,0))
+        self.screen.blit(self.door_nametage_img, (0, 0))
         # Details
         boss = self.profs[self.selected_door["level"]]
-        draw_text(self.screen, f"OFFICE OF {boss.name.upper()}", SCREEN_WIDTH//2, 100, self.title_font, GOLD, center=True)
-        draw_text(self.screen, boss.level_name, SCREEN_WIDTH//2, 180, self.font, WHITE, center=True)
 
-        self.btn_confirm = Button("CHALLENGE", SCREEN_WIDTH//2 - 210, SCREEN_HEIGHT - 150, 200, 60, OU_CRIMSON)
-        self.btn_back = Button("BACK", SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT - 150, 200, 60, GRAY)
+        title_text = f"OFFICE OF\n{boss.name.upper()}"
+        lines = title_text.split('\n')
+        current_y = 350
+        line_spacing = self.title_font.get_linesize() 
+
+        for line in lines:
+            draw_text(self.screen, line, SCREEN_WIDTH//2, current_y, self.title_font, BLACK, True)
+            current_y += line_spacing # Move the next line down
+        draw_text(self.screen, boss.level_name, SCREEN_WIDTH//2, SCREEN_HEIGHT * 0.53, self.font, BLACK, center=True)
+
+        self.btn_confirm = Button("CHALLENGE", SCREEN_WIDTH//2 - 210, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
+        self.btn_back = Button("BACK", SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
         
         self.btn_confirm.draw(self.screen, self.font)
         self.btn_back.draw(self.screen, self.font)
@@ -428,6 +497,7 @@ class Game:
 
     def draw_menu(self):
         intro_file = os.path.join(SFX_DIR, f"title_screen.wav")
+        self.screen.blit(self.background_assets["title"], (0, 0))
         # Only initialize music if we just entered the MENU state
         if self.last_music_state != MENU:
             self.sound.clear_music()
@@ -442,15 +512,14 @@ class Game:
         help_x = side_margin
         quit_x = SCREEN_WIDTH - side_margin - quit_w
 
-        draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - int(SCREEN_HEIGHT * 0.05), self.title_font, OU_CRIMSON, True)
-        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
+        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CREAM)
         self.btn_help = Button(
             "?",
             int(help_x),
             SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08),
             int(help_w),
             int(SCREEN_HEIGHT * 0.05),
-            GRAY
+            OU_CREAM
         )
 
         self.btn_quit = Button(
@@ -459,7 +528,7 @@ class Game:
             SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08),
             int(quit_w),
             int(SCREEN_HEIGHT * 0.05),
-            GRAY
+            OU_CREAM
         )
 
         
@@ -490,7 +559,24 @@ class Game:
                 draw_text(self.screen, line, SCREEN_WIDTH//5 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.2) + (i * int(SCREEN_HEIGHT * 0.04)), self.font, BLACK)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, BLACK, True)
 
-    def draw_character_preview(self, student, rect, facing="right"):
+    def draw_loss(self):
+        # Determine which lose screen to show
+        if self.boss.bossId == 1:
+            bg = self.background_assets["lost_sridhar"]
+        elif self.boss.bossId == 2:
+            bg = self.background_assets["lost_dioch"] # Dioch uses Maiti's
+        else:
+            bg = self.background_assets["lost_maiti"]
+            
+        self.screen.blit(bg, (0, 0))
+        
+        # Add a dark overlay to make text readable
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 100))
+        self.screen.blit(overlay, (0, 0))
+
+        draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT * 0.9, self.font, OU_CRIMSON, True)
+    def draw_character_preview(self, student, rect, facing="front"):
         frame = None
         if hasattr(student, "all_frames"):
             frames = student.all_frames.get(facing, {}).get(IDLE, [])
@@ -518,85 +604,101 @@ class Game:
         self.screen.blit(sprite, (draw_x, draw_y))
 
     def draw_character_select(self):
+        self.screen.blit(self.background_assets["class"], (0, 0))
+        
         # Continue menu music or initialize SELECT music if it changes
         if self.last_music_state != SELECT:
             # Keep playing the same intro music during character selection
             # (or use a different track here if desired, e.g., os.path.join(SFX_DIR, f"select_screen.wav"))
             self.last_music_state = SELECT
         
-        draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
-        
+        title = "CHOOSE YOUR STUDENT"
+        tx = SCREEN_WIDTH // 2
+        ty = int(SCREEN_HEIGHT * 0.25)
         card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
         m_pos = pygame.mouse.get_pos()
 
+        # Outline (black)
+        for ox, oy in [(-3,0),(3,0),(0,-3),(0,3)]:
+            draw_text(self.screen, title, tx + ox, ty + oy, self.title_font, BLACK, True)
+
+        # Main text (cream)
+        draw_text(self.screen, title, tx, ty, self.title_font, OU_CREAM, True)
+        # Determine hovered card index
+        hover_idx = None
+        for i in range(len(self.roster)):
+            x = gap + i * (card_w + gap)
+            y = int(SCREEN_HEIGHT * 0.35)
+            rect = pygame.Rect(x, y, card_w, card_h)
+            if rect.collidepoint(m_pos):
+                hover_idx = i
+                break
+
+        self.selected_idx = hover_idx
         if self.selected_idx is None:
+            # NO ONE HOVERED: Show 3 normal cards in IDLE
             for i, s in enumerate(self.roster):
                 x = gap + i * (card_w + gap)
-                y = int(SCREEN_HEIGHT * 0.18)
+                y = int(SCREEN_HEIGHT * 0.35)
                 rect = pygame.Rect(x, y, card_w, card_h)
-                is_hovered = rect.collidepoint(m_pos)
                 
-                color = GOLD if is_hovered else GRAY
-                pygame.draw.rect(self.screen, color, rect, border_radius=15)
+                self.draw_transparent_rect(self.screen, GRAY, rect, 180)
                 pygame.draw.rect(self.screen, WHITE, rect, 2, border_radius=15)
 
-                preview_rect = pygame.Rect(
-                    x + int(card_w * 0.14),
-                    y + int(card_h * 0.09),
-                    int(card_w * 0.71),
-                    int(card_h * 0.54),
-                )
+                # Define preview_rect inside the loop so it knows the current x/y
+                preview_rect = pygame.Rect(x + int(card_w * 0.14), y + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54))
+                
+                # Default to Idle since nothing is hovered in this block
                 self.draw_character_preview(s, preview_rect)
                 draw_text(self.screen, s.name, x + card_w//2, y + int(card_h * 0.68), self.font, WHITE, True)
+        
         else:
-            # CENTER AND ENLARGE LOGIC
-            s = self.roster[self.selected_idx]
+            # SOMEONE IS HOVERED: Enlarge focused, keep others small
+            s_focused = self.roster[self.selected_idx]
             large_w, large_h = int(SCREEN_WIDTH * 0.23), int(SCREEN_HEIGHT * 0.58)
-            x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
-            
-            # Draw all other cards darkened
-            card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
-            gap = (SCREEN_WIDTH - (3 * card_w)) // 4
+
             for i, other in enumerate(self.roster):
+                x = gap + i * (card_w + gap)
+                y = int(SCREEN_HEIGHT * 0.35)
+                rect = pygame.Rect(x, y, card_w, card_h)
+
                 if i == self.selected_idx:
-                    continue
-                ox = gap + i * (card_w + gap)
-                oy = int(SCREEN_HEIGHT * 0.18)
-                dark_color = (50, 50, 50)  # darkened gray
-                pygame.draw.rect(self.screen, dark_color, (ox, oy, card_w, card_h), border_radius=15)
-                pygame.draw.rect(self.screen, WHITE, (ox, oy, card_w, card_h), 2, border_radius=15)
+                    # DRAW THE ENLARGED FOCUSED CARD
+                    fx = x - (large_w - card_w) // 2
+                    fy = y - (large_h - card_h) // 2
+                    f_rect = pygame.Rect(fx, fy, large_w, large_h)
+                    
+                    pygame.draw.rect(self.screen, GOLD, f_rect, border_radius=15)
+                    pygame.draw.rect(self.screen, WHITE, f_rect, 4, border_radius=15)
 
-                preview_rect = pygame.Rect(
-                    ox + int(card_w * 0.14),
-                    oy + int(card_h * 0.09),
-                    int(card_w * 0.71),
-                    int(card_h * 0.54),
-                )
-                self.draw_character_preview(other, preview_rect)
-                draw_text(self.screen, other.name, ox + card_w//2, oy + int(card_h * 0.68), self.font, WHITE, True)
+                    p_rect = pygame.Rect(fx + int(large_w * 0.11), fy + int(large_h * 0.07), int(large_w * 0.78), int(large_h * 0.54))
+                    
+                    # THRUST SPRITE FOR FOCUSED
+                    if hasattr(s_focused, 'hover_sprite') and s_focused.hover_sprite:
+                        img = s_focused.hover_sprite
+                        scale = min(p_rect.w / img.get_width(), p_rect.h / img.get_height())
+                        scaled = pygame.transform.smoothscale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
+                        self.screen.blit(scaled, (p_rect.centerx - scaled.get_width()//2, p_rect.centery - scaled.get_height()//2))
+                    else:
+                        self.draw_character_preview(s_focused, p_rect)
 
-            # Focused Card
-            pygame.draw.rect(self.screen, GOLD, (x, y, large_w, large_h), border_radius=15)
-            pygame.draw.rect(self.screen, WHITE, (x, y, large_w, large_h), 4, border_radius=15)
-
-            preview_rect = pygame.Rect(
-                x + int(large_w * 0.11),
-                y + int(large_h * 0.07),
-                int(large_w * 0.78),
-                int(large_h * 0.54),
-            )
-            self.draw_character_preview(s, preview_rect)
-            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, BLACK, True)
-
-            draw_text(self.screen, "SPECIAL ABILITY:", x + int(large_w * 0.09), y + int(large_h * 0.72), self.small_font, GOLD)
-            lines = wrap_text(s.ability_desc, self.small_font, int(large_w * 0.82))
-            for j, line in enumerate(lines):
-                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, BLACK)
-
-            self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
-            self.btn_confirm.draw(self.screen, self.font)
-
+                    # Text for Focused Card
+                    draw_text(self.screen, s_focused.name, fx + large_w//2, fy + int(large_h * 0.62), self.medium_font, BLACK, True)
+                    self.small_font.set_bold(True)
+                    draw_text(self.screen, "SPECIAL ABILITY:", fx + large_w//2, fy + int(large_h * 0.70), self.small_font, GOLD, True)
+                    lines = wrap_text(s_focused.ability_desc, self.small_font, int(large_w * 0.82))
+                    for j, line in enumerate(lines):
+                        draw_text(self.screen, line, fx + large_w//2, fy + int(large_h * 0.75) + (j * 20), self.small_font, BLACK, True)
+                    self.small_font.set_bold(False)
+                
+                else:
+                    # DRAW OTHER SMALL CARDS (Idle)
+                    self.draw_transparent_rect(self.screen, GRAY, rect, 180)
+                    pygame.draw.rect(self.screen, WHITE, rect, 2, border_radius=15)
+                    p_rect = pygame.Rect(x + int(card_w * 0.14), y + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54))
+                    self.draw_character_preview(other, p_rect)
+                    draw_text(self.screen, other.name, x + card_w//2, y + int(card_h * 0.68), self.font, WHITE, True)
     def show_combat_text(self, text, color=GRAY):
         self.combat_text = text
         self.combat_text_color = color
@@ -674,15 +776,28 @@ class Game:
                 floor_surface.fill((34, 139, 34, 200))  # Forest green
                 self.screen.blit(floor_surface, (0, floor_y))
         elif self.boss.bossId == 2:
-            # Level 2: Darker ground
-            floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
-            floor_surface.fill((20, 20, 25, 200))  # Dark blue-gray
-            self.screen.blit(floor_surface, (0, floor_y))
+            navy_path = os.path.join(BASE_DIR, "assets", "backgrounds", "navy.png")
+            try:
+                navy = pygame.image.load(navy_path).convert_alpha()
+                navy = pygame.transform.scale(navy, (SCREEN_WIDTH, floor_height))
+                # FIX: Changed 'tile' to 'navy'
+                self.screen.blit(navy, (0, floor_y + SCREEN_HEIGHT*0.03))
+            except:
+                # Fallback: Dark Navy
+                floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
+                floor_surface.fill((0, 0, 128, 200))  # Dark Navy
+                self.screen.blit(floor_surface, (0, floor_y))
         else:  # Level 3
-            # Level 3: Darkest ground
-            floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
-            floor_surface.fill((15, 10, 10, 220))  # Almost black with red tint
-            self.screen.blit(floor_surface, (0, floor_y))
+            tile_path = os.path.join(BASE_DIR, "assets", "backgrounds", "tile.png")
+            try:
+                tile = pygame.image.load(tile_path).convert_alpha()
+                tile = pygame.transform.scale(tile, (SCREEN_WIDTH, floor_height))
+                self.screen.blit(tile, (0, floor_y + SCREEN_HEIGHT*0.03))
+            except:
+                # Fallback: Dark Purple
+                floor_surface = pygame.Surface((SCREEN_WIDTH, floor_height), pygame.SRCALPHA)
+                floor_surface.fill((48, 25, 52, 200))  # Dark Purple
+                self.screen.blit(floor_surface, (0, floor_y))
 
         # Draw player with shadow
         player_x = int(SCREEN_WIDTH * 0.08)
@@ -692,6 +807,7 @@ class Game:
 
         boss_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.63)
 
+       
         # ----- Boss entrance walking -----
         if self.boss_entering:
             self.boss.set_state(WALK)
@@ -991,50 +1107,13 @@ class Game:
                         if self.btn_help and self.btn_help.is_clicked(m_pos): self.show_how_to_play = True
                         if self.btn_quit and self.btn_quit.is_clicked(m_pos): running = False
                     elif self.state == SELECT:
-                        if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
-                            self.player = self.roster[self.selected_idx]
-                            self.player.facing = "right"
-                            self.player.set_state(IDLE)
-                            self.player_world_x = 400 
-                            
-                            # GO TO HALLWAY
-                            self.start_fade(HALLWAY)
-                        card_w = int(SCREEN_WIDTH * 0.18)
-                        card_h = int(SCREEN_HEIGHT * 0.45)
-                        gap = (SCREEN_WIDTH - (3 * card_w)) // 4
-
-                        # If no card selected, normal selection
-                        if self.selected_idx is None:
-                            for i in range(3):
-                                if pygame.Rect(gap + i*(card_w+gap), int(SCREEN_HEIGHT * 0.18), card_w, card_h).collidepoint(m_pos):
-                                    self.selected_idx = i
-
-                        else:
-                            # If card is selected, click logic
-                            large_w, large_h = int(SCREEN_WIDTH * 0.23), int(SCREEN_HEIGHT * 0.58)
-                            x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
-                            focused_rect = pygame.Rect(x, y, large_w, large_h)
-                            '''
-                            # Confirm button already handled
-                            if self.btn_confirm and self.btn_confirm.is_clicked(m_pos):
+                        if event.type == pygame.MOUSEBUTTONDOWN:
+                            # If a character is currently hovered, clicking selects them and starts
+                            if self.selected_idx is not None:
                                 self.player = self.roster[self.selected_idx]
-                                self.boss = self.profs[self.current_level]
-                                self.start_fade(BATTLE)
-                                self.boss_entering = True
-                                self.boss_x = SCREEN_WIDTH + int(SCREEN_WIDTH * 0.1)
+                                self.start_fade(HALLWAY)
 
-
-                                self.battle_log = f"{self.boss.name} is ready to grade!"
-                                intro_file = os.path.join(AUDIO_DIR, f"Prof{self.current_level+1}Intro.wav")
-                                self.sound.play_voice(intro_file)
-                            
-                            # Click outside the focused card cancels selection
-                            elif not focused_rect.collidepoint(m_pos):
-                                self.selected_idx = None
-                            '''
-                            if not focused_rect.collidepoint(m_pos) and not self.btn_confirm.is_clicked(m_pos):
-                                self.selected_idx = None
-
+                        
                     elif self.state == HALLWAY:
                         if self.show_exit_prompt:
                             if self.btn_exit_yes.is_clicked(m_pos):
@@ -1110,11 +1189,25 @@ class Game:
             elif self.state == DOOR_VIEW: self.draw_door_view()
             elif self.state == BATTLE: self.draw_battle()
             elif self.state == WIN:
-                draw_text(self.screen, self.player.win_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, GREEN, True)
-                draw_text(self.screen, "Click to Continue", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.1), self.small_font, WHITE, True)
+                win_bg = "title" # Default fallback
+                if self.player.name == "4.0 Medallion":
+                    win_bg = "win_kris"
+                elif self.player.name == "Cs Get Degrees":
+                    win_bg = "win_shri"
+                elif self.player.name == "TA God":
+                    win_bg = "win_ken"
+                # Draw the specific background
+                self.screen.blit(self.background_assets[win_bg], (0, 0))
+
+                # Draw a subtle dark overlay to keep the text readable
+                overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+                overlay.fill((0, 0, 0, 80)) 
+                self.screen.blit(overlay, (0, 0))
+
+                # Draw the win messages
+                #draw_text(self.screen, self.player.win_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 10, self.font, GREEN, True)
             elif self.state == LOSS:
-                draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
-                draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.1), self.small_font, WHITE, True)
+                self.draw_loss()
                 self.player.hp = self.player.max_hp
                 self.boss.hp = self.boss.max_hp
 

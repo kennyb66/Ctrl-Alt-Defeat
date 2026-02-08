@@ -24,7 +24,7 @@ def wrap_text(text, font, max_width):
     lines.append(' '.join(current_line))
     return lines
 class Button:
-    def __init__(self, text, x, y, w, h, base_color, hover_color=OU_CREAM, disabled=False):
+    def __init__(self, text, x, y, w, h, base_color, hover_color=GOLD, disabled=False):
         self.text = text
         self.base_y = y  # Store base y for centering
         self.w = w
@@ -80,8 +80,8 @@ class Button:
             txt_color = BLACK
         else:
             bg_color = self.base_color
-            border_color = WHITE
-            txt_color = WHITE
+            border_color = BLACK
+            txt_color = BLACK
 
         # Draw button
         pygame.draw.rect(screen, bg_color, self.rect, border_radius=5)
