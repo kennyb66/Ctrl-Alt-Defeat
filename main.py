@@ -32,6 +32,7 @@ class Game:
         # Responsive fonts
         self.font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.025))
         self.title_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.07), bold=True)
+        self.medium_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.035), bold=True)
         self.small_font = pygame.font.SysFont("Courier", int(SCREEN_HEIGHT * 0.02))
         
         # Initialize question manager
@@ -80,9 +81,9 @@ class Game:
 
         # Boss entrance animation
         self.boss_entering = False
-        self.boss_x = SCREEN_WIDTH + 200
-        self.boss_target_x = SCREEN_WIDTH - 450
-        self.boss_walk_speed = 6
+        self.boss_x = SCREEN_WIDTH + int(SCREEN_WIDTH * 0.1)
+        self.boss_target_x = SCREEN_WIDTH - int(SCREEN_WIDTH * 0.23)
+        self.boss_walk_speed = int(SCREEN_WIDTH * 0.003)
 
 
 
@@ -177,10 +178,10 @@ class Game:
 
 
     def draw_menu(self):
-        draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50, self.title_font, OU_CRIMSON, True)
-        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 75, 300, 60, OU_CRIMSON)
-        self.btn_help = Button("?", 25, SCREEN_HEIGHT-80, 50, 50, GRAY)
-        self.btn_quit = Button("QUIT", SCREEN_WIDTH - 150, SCREEN_HEIGHT - 80, 120, 50, GRAY)
+        draw_text(self.screen, "Ctrl+Alt+Defeat", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - int(SCREEN_HEIGHT * 0.05), self.title_font, OU_CRIMSON, True)
+        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
+        self.btn_help = Button("?", int(SCREEN_WIDTH * 0.013), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08), int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), GRAY)
+        self.btn_quit = Button("QUIT", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.08), int(SCREEN_WIDTH * 0.063), int(SCREEN_HEIGHT * 0.05), GRAY)
         
         self.btn_start.draw(self.screen, self.font)
         self.btn_help.draw(self.screen, self.font)
@@ -191,7 +192,7 @@ class Game:
             overlay.fill((0, 0, 0, 220))
             self.screen.blit(overlay, (0,0))
             pygame.draw.rect(self.screen, WHITE, (SCREEN_WIDTH//4, SCREEN_HEIGHT//4, SCREEN_WIDTH//2, SCREEN_HEIGHT//2), 3)
-            draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + 30, self.font, GOLD, True)
+            draw_text(self.screen, "SYLLABUS (HOW TO PLAY)", SCREEN_WIDTH//2, SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.03), self.font, GOLD, True)
             instructions = [
                 "1. Pick your Student character.",
                 "2. Attack to lower the Professor's HP.",
@@ -200,20 +201,20 @@ class Game:
                 "5. Defeat all 3 professors to graduate."
             ]
             for i, line in enumerate(instructions):
-                draw_text(self.screen, line, SCREEN_WIDTH//4 + 40, SCREEN_HEIGHT//4 + 100 + (i*40), self.font)
+                draw_text(self.screen, line, SCREEN_WIDTH//4 + int(SCREEN_WIDTH * 0.02), SCREEN_HEIGHT//4 + int(SCREEN_HEIGHT * 0.1) + (i * int(SCREEN_HEIGHT * 0.04)), self.font)
             draw_text(self.screen, "(Click anywhere to close)", SCREEN_WIDTH//2, SCREEN_HEIGHT*0.7, self.font, WHITE, True)
 
     def draw_character_select(self):
-        draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, 60, self.title_font, OU_CREAM, True)
+        draw_text(self.screen, "CHOOSE YOUR STUDENT", SCREEN_WIDTH//2, int(SCREEN_HEIGHT * 0.06), self.title_font, OU_CREAM, True)
         
-        card_w, card_h = 350, 450
+        card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
         m_pos = pygame.mouse.get_pos()
 
         if self.selected_idx is None:
             for i, s in enumerate(self.roster):
                 x = gap + i * (card_w + gap)
-                y = 180
+                y = int(SCREEN_HEIGHT * 0.18)
                 rect = pygame.Rect(x, y, card_w, card_h)
                 is_hovered = rect.collidepoint(m_pos)
                 
@@ -221,40 +222,40 @@ class Game:
                 pygame.draw.rect(self.screen, color, rect, border_radius=15)
                 pygame.draw.rect(self.screen, WHITE, rect, 2, border_radius=15)
                 
-                pygame.draw.rect(self.screen, BLACK, (x+50, y+40, card_w-100, 200), border_radius=10)
-                draw_text(self.screen, s.name, x + card_w//2, y + 260, self.font, WHITE, True)
+                pygame.draw.rect(self.screen, BLACK, (x + int(card_w * 0.14), y + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54)), border_radius=10)
+                draw_text(self.screen, s.name, x + card_w//2, y + int(card_h * 0.68), self.font, WHITE, True)
         else:
             # CENTER AND ENLARGE LOGIC
             s = self.roster[self.selected_idx]
-            large_w, large_h = 450, 580
+            large_w, large_h = int(SCREEN_WIDTH * 0.23), int(SCREEN_HEIGHT * 0.58)
             x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
             
             # Draw all other cards darkened
-            card_w, card_h = 350, 450
+            card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
             gap = (SCREEN_WIDTH - (3 * card_w)) // 4
             for i, other in enumerate(self.roster):
                 if i == self.selected_idx:
                     continue
                 ox = gap + i * (card_w + gap)
-                oy = 180
+                oy = int(SCREEN_HEIGHT * 0.18)
                 dark_color = (50, 50, 50)  # darkened gray
                 pygame.draw.rect(self.screen, dark_color, (ox, oy, card_w, card_h), border_radius=15)
                 pygame.draw.rect(self.screen, WHITE, (ox, oy, card_w, card_h), 2, border_radius=15)
-                pygame.draw.rect(self.screen, BLACK, (ox+50, oy+40, card_w-100, 200), border_radius=10)
-                draw_text(self.screen, other.name, ox + card_w//2, oy + 260, self.font, WHITE, True)
+                pygame.draw.rect(self.screen, BLACK, (ox + int(card_w * 0.14), oy + int(card_h * 0.09), int(card_w * 0.71), int(card_h * 0.54)), border_radius=10)
+                draw_text(self.screen, other.name, ox + card_w//2, oy + int(card_h * 0.68), self.font, WHITE, True)
 
             # Focused Card
             pygame.draw.rect(self.screen, GOLD, (x, y, large_w, large_h), border_radius=15)
             pygame.draw.rect(self.screen, WHITE, (x, y, large_w, large_h), 4, border_radius=15)
-            pygame.draw.rect(self.screen, BLACK, (x+50, y+40, large_w-100, 280), border_radius=10)
-            draw_text(self.screen, s.name, x + large_w//2, y + 340, self.title_font, WHITE, True)
+            pygame.draw.rect(self.screen, BLACK, (x + int(large_w * 0.11), y + int(large_h * 0.07), int(large_w * 0.78), int(large_h * 0.54)), border_radius=10)
+            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, WHITE, True)
 
-            draw_text(self.screen, "SPECIAL ABILITY:", x + 40, y + 420, self.font, GOLD)
-            lines = wrap_text(s.ability_desc, self.small_font, large_w - 80)
+            draw_text(self.screen, "SPECIAL ABILITY:", x + int(large_w * 0.09), y + int(large_h * 0.72), self.small_font, GOLD)
+            lines = wrap_text(s.ability_desc, self.small_font, int(large_w * 0.82))
             for j, line in enumerate(lines):
-                draw_text(self.screen, line, x + 40, y + 460 + (j*30), self.font, WHITE)
+                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, WHITE)
 
-            self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT - 120, 300, 60, OU_CRIMSON)
+            self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
             self.btn_confirm.draw(self.screen, self.font)
 
     def show_combat_text(self, text, color=GRAY):
@@ -266,10 +267,10 @@ class Game:
 
     def draw_battle(self):
         # Floor
-        pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT-300, SCREEN_WIDTH, 300))
+        pygame.draw.rect(self.screen, (30, 30, 35), (0, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.3), SCREEN_WIDTH, int(SCREEN_HEIGHT * 0.3)))
         
-        self.player.draw(self.screen, 150, SCREEN_HEIGHT - 550)
-        boss_y = SCREEN_HEIGHT - 650
+        self.player.draw(self.screen, int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.55))
+        boss_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.65)
 
         # ----- Boss entrance walking -----
         if self.boss_entering:
@@ -289,16 +290,18 @@ class Game:
         # UI Header
         p_hp_ratio = self.player.hp / self.player.max_hp
         b_hp_ratio = self.boss.hp / self.boss.max_hp
-        pygame.draw.rect(self.screen, OU_CRIMSON, (50, 50, 350, 30))
-        pygame.draw.rect(self.screen, GREEN, (50, 50, 350 * p_hp_ratio, 30))
-        draw_text(self.screen, f"{self.player.name}: {self.player.hp} HP", 50, 20, self.font)
+        hp_bar_w = int(SCREEN_WIDTH * 0.18)
+        hp_bar_h = int(SCREEN_HEIGHT * 0.03)
+        pygame.draw.rect(self.screen, OU_CRIMSON, (int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
+        pygame.draw.rect(self.screen, GREEN, (int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.05), hp_bar_w * p_hp_ratio, hp_bar_h))
+        draw_text(self.screen, f"{self.player.name}: {self.player.hp} HP", int(SCREEN_WIDTH * 0.026), int(SCREEN_HEIGHT * 0.02), self.font)
 
-        pygame.draw.rect(self.screen, OU_CRIMSON, (SCREEN_WIDTH - 400, 50, 350, 30))
-        pygame.draw.rect(self.screen, GREEN, (SCREEN_WIDTH - 400, 50, 350 * b_hp_ratio, 30))
-        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - 400, 20, self.font)
+        pygame.draw.rect(self.screen, OU_CRIMSON, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
+        pygame.draw.rect(self.screen, GREEN, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w * b_hp_ratio, hp_bar_h))
+        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.02), self.font)
 
         # Control Box
-        ui_rect = pygame.Rect(50, SCREEN_HEIGHT - 180, SCREEN_WIDTH - 100, 150)
+        ui_rect = pygame.Rect(int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18), SCREEN_WIDTH - int(SCREEN_WIDTH * 0.052), int(SCREEN_HEIGHT * 0.15))
         pygame.draw.rect(self.screen, BLACK, ui_rect, border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
@@ -322,8 +325,8 @@ class Game:
                 txt_surface.set_alpha(alpha)
                 
                 # Position above player, offset each line
-                text_x = 250 + 75 - txt_surface.get_width() // 2
-                text_y = SCREEN_HEIGHT - 600 + self.combat_text_y_offset + (i * line_height)
+                text_x = int(SCREEN_WIDTH * 0.17) - txt_surface.get_width() // 2
+                text_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.6) + self.combat_text_y_offset + (i * line_height)
                 
                 self.screen.blit(txt_surface, (text_x, text_y))
 
@@ -345,28 +348,31 @@ class Game:
             draw_speech_bubble(
                 self.screen,
                 self.current_q['text'],
-                SCREEN_WIDTH - 450,
-                SCREEN_HEIGHT - 650,
+                SCREEN_WIDTH - int(SCREEN_WIDTH * 0.23),
+                SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.65),
                 self.font,
                 type="boss"
             )
             self.answer_btns = []
             num_choices = len(self.current_q['choices'])
-            btn_width = 200
-            btn_spacing = 20
+            btn_width = int(SCREEN_WIDTH * 0.15)
+            btn_spacing = int(SCREEN_WIDTH * 0.015)
             total_width = (num_choices * btn_width) + ((num_choices - 1) * btn_spacing)
             start_x = (SCREEN_WIDTH - total_width) // 2
 
             for i, opt in enumerate(self.current_q['choices']):
                 x = start_x + (i * (btn_width + btn_spacing))
-                btn = Button(opt, x, SCREEN_HEIGHT - 105, btn_width, 50, OU_CRIMSON)
+                btn = Button(opt, x, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, int(SCREEN_HEIGHT * 0.055), OU_CRIMSON)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
-            draw_text(self.screen, self.battle_log, 80, SCREEN_HEIGHT - 120, self.font)
-            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - 480, SCREEN_HEIGHT - 105, 180, 50, GRAY)
+            draw_text(self.screen, self.battle_log, int(SCREEN_WIDTH * 0.042), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), self.font)
+            btn_width = int(SCREEN_WIDTH * 0.12)
+            btn_height = int(SCREEN_HEIGHT * 0.055)
+            btn_spacing = int(SCREEN_WIDTH * 0.015)
+            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - (2 * btn_width + btn_spacing) - int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY)
             heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_disabled)
+            self.btn_heal = Button("HEAL", SCREEN_WIDTH - btn_width - int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY, disabled=heal_disabled)
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
@@ -491,18 +497,19 @@ class Game:
                         if self.btn_help and self.btn_help.is_clicked(m_pos): self.show_how_to_play = True
                         if self.btn_quit and self.btn_quit.is_clicked(m_pos): running = False
                     elif self.state == SELECT:
-                        card_w = 350
+                        card_w = int(SCREEN_WIDTH * 0.18)
+                        card_h = int(SCREEN_HEIGHT * 0.45)
                         gap = (SCREEN_WIDTH - (3 * card_w)) // 4
 
                         # If no card selected, normal selection
                         if self.selected_idx is None:
                             for i in range(3):
-                                if pygame.Rect(gap + i*(card_w+gap), 180, card_w, 450).collidepoint(m_pos):
+                                if pygame.Rect(gap + i*(card_w+gap), int(SCREEN_HEIGHT * 0.18), card_w, card_h).collidepoint(m_pos):
                                     self.selected_idx = i
 
                         else:
                             # If card is selected, click logic
-                            large_w, large_h = 450, 580
+                            large_w, large_h = int(SCREEN_WIDTH * 0.23), int(SCREEN_HEIGHT * 0.58)
                             x, y = (SCREEN_WIDTH // 2 - large_w // 2), (SCREEN_HEIGHT // 2 - large_h // 2)
                             focused_rect = pygame.Rect(x, y, large_w, large_h)
 
@@ -512,7 +519,7 @@ class Game:
                                 self.boss = self.profs[self.current_level]
                                 self.start_fade(BATTLE)
                                 self.boss_entering = True
-                                self.boss_x = SCREEN_WIDTH + 200
+                                self.boss_x = SCREEN_WIDTH + int(SCREEN_WIDTH * 0.1)
 
 
                                 self.battle_log = f"{self.boss.name} is ready to grade!"
@@ -538,7 +545,7 @@ class Game:
                             self.victory_stage = 0
                             self.start_fade(BATTLE)
                             self.boss_entering = True
-                            self.boss_x = SCREEN_WIDTH + 200
+                            self.boss_x = SCREEN_WIDTH + int(SCREEN_WIDTH * 0.1)
                             self.battle_log = f"Onto Level {self.current_level+1}!"
                         elif self.state == WIN:
                             # Final victory - click to quit
@@ -559,10 +566,10 @@ class Game:
             elif self.state == BATTLE: self.draw_battle()
             elif self.state == WIN:
                 draw_text(self.screen, self.player.win_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, GREEN, True)
-                draw_text(self.screen, "Click to Continue", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
+                draw_text(self.screen, "Click to Continue", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.1), self.small_font, WHITE, True)
             elif self.state == LOSS:
                 draw_text(self.screen, self.boss.loss_msg, SCREEN_WIDTH//2, SCREEN_HEIGHT//2, self.font, OU_CRIMSON, True)
-                draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 100, self.small_font, WHITE, True)
+                draw_text(self.screen, "Return to Menu", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.1), self.small_font, WHITE, True)
                 self.player.hp = self.player.max_hp
                 self.boss.hp = self.boss.max_hp
 
