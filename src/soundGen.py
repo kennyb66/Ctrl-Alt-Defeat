@@ -2,42 +2,52 @@ import pygame
 import os
 import random
 
-pygame.mixer.init()
+class SoundManager:
+    def __init__(self):
+        pygame.mixer.init()
 
-# Path to the project root (Ctrl-Alt-Defeat folder)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AUDIO_DIR = os.path.join(BASE_DIR, "assets", "audio")
+        # Dedicated channels
+        self.voice_channel = pygame.mixer.Channel(0)
+        self.sfx_channel   = pygame.mixer.Channel(1)
 
+        # Base paths
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.audio_dir = os.path.join(base_dir, "assets", "audio")
 
-def play_audio_clip(file_path, volume=1.0):
-    """Plays a single sound clip (.wav) asynchronously."""
-    if not os.path.exists(file_path):
-        print(f"Audio file not found: {file_path}")
-        return
+    # -------------------------
+    # Core voice playback
+    # -------------------------
+    def play_voice(self, file_path, volume=1.0, fade_ms=150):
+        if not os.path.exists(file_path):
+            print(f"[WARN] Missing audio file: {file_path}")
+            return
 
-    sound = pygame.mixer.Sound(file_path)
-    sound.set_volume(volume)
-    sound.play()
+        sound = pygame.mixer.Sound(file_path)
+        sound.set_volume(volume)
 
+        if self.voice_channel.get_busy():
+            self.voice_channel.fadeout(fade_ms)
 
-def play_random_voiceline(boss_id):
-    """Plays a random question voiceline for a given boss."""
+        self.voice_channel.play(sound)
 
-    # Absolute path to Boss folder
-    folder = os.path.join(AUDIO_DIR, f"Boss{boss_id}")
+    # -------------------------
+    # Random question voiceline
+    # -------------------------
+    def play_random_voiceline(self, boss_id):
+        folder = os.path.join(self.audio_dir, f"Boss{boss_id}")
 
-    if not os.path.exists(folder):
-        print(f"Boss audio folder missing: {folder}")
-        return
+        if not os.path.exists(folder):
+            print(f"[WARN] Boss audio folder missing: {folder}")
+            return
 
-    files = [
-        f for f in os.listdir(folder)
-        if f.lower().endswith(".wav") and "voiceline" in f.lower()
-    ]
+        files = [
+            f for f in os.listdir(folder)
+            if f.lower().endswith(".wav") and "voiceline" in f.lower()
+        ]
 
-    if not files:
-        print(f"No voicelines found for boss {boss_id} in {folder}")
-        return
+        if not files:
+            print(f"[WARN] No voicelines for boss {boss_id}")
+            return
 
-    file_path = os.path.join(folder, random.choice(files))
-    play_audio_clip(file_path)
+        file_path = os.path.join(folder, random.choice(files))
+        self.play_voice(file_path)
