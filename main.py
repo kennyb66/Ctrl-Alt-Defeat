@@ -43,7 +43,8 @@ class Game:
         scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.png")
         self.scroll_bg = pygame.image.load(scroll_path)
         self.scroll_bg = pygame.transform.scale(self.scroll_bg, (int(SCREEN_WIDTH * 0.85), int(SCREEN_HEIGHT * 0.65)))
-        
+        scroll_path = os.path.join(BASE_DIR, "assets", "backgrounds", "scroll.png")
+        self.ui_scroll = pygame.image.load(scroll_path).convert_alpha()
 
         # Load custom cursor image
         self.custom_cursor = None
@@ -422,7 +423,17 @@ class Game:
             current_y += line_spacing # Move the next line down
         draw_text(self.screen, boss.level_name, SCREEN_WIDTH//2, SCREEN_HEIGHT * 0.53, self.font, BLACK, center=True)
 
-        self.btn_confirm = Button("CHALLENGE", SCREEN_WIDTH//2 - 210, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
+        current_ticks = pygame.time.get_ticks()
+        wiggle_x = 0
+        if (current_ticks % 2500) < 500: 
+            wiggle_x = math.sin(current_ticks * 0.05) * 6
+
+        # Apply wiggle to the confirm button
+        confirm_x = SCREEN_WIDTH//2 - 225 + wiggle_x
+        self.btn_confirm = Button("CHALLENGE", confirm_x, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
+        self.btn_confirm.draw(self.screen, self.font)
+
+
         self.btn_back = Button("BACK", SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
         
         self.btn_confirm.draw(self.screen, self.font)
@@ -543,7 +554,7 @@ class Game:
         help_x = side_margin
         quit_x = SCREEN_WIDTH - side_margin - quit_w
 
-        self.btn_start = Button("ENTER THE LAB", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CREAM)
+        
         self.btn_help = Button(
             "?",
             int(help_x),
@@ -552,6 +563,16 @@ class Game:
             int(SCREEN_HEIGHT * 0.05),
             OU_CREAM
         )
+
+        current_ticks = pygame.time.get_ticks()
+        wiggle_x = 0
+        if (current_ticks % 2500) < 500: 
+            wiggle_x = math.sin(current_ticks * 0.05) * 6
+
+        # Update the button's X position with the wiggle
+        btn_x = SCREEN_WIDTH//2 - 125 + wiggle_x
+        self.btn_start = Button("BEGIN SEMESTER", btn_x, SCREEN_HEIGHT//2 + int(SCREEN_HEIGHT * 0.07), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CREAM)
+        self.btn_start.draw(self.screen, self.font)
 
         self.btn_quit = Button(
             "QUIT",
@@ -958,6 +979,8 @@ class Game:
             pygame.draw.rect(self.screen, BLACK, ui_rect.inflate(0, 10), border_radius=15)
         pygame.draw.rect(self.screen, OU_CRIMSON, ui_rect, 4, border_radius=15)
 
+        scaled_scroll = pygame.transform.scale(self.ui_scroll, (ui_rect.width, ui_rect.height))
+        self.screen.blit(scaled_scroll, (ui_rect.x, ui_rect.y))
      
         if self.combat_text and pygame.time.get_ticks() < self.combat_text_timer:
             # float upward
