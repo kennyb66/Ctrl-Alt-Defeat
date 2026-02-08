@@ -531,12 +531,12 @@ class Game:
                 int(large_h * 0.54),
             )
             self.draw_character_preview(s, preview_rect)
-            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, WHITE, True)
+            draw_text(self.screen, s.name, x + large_w//2, y + int(large_h * 0.62), self.medium_font, BLACK, True)
 
             draw_text(self.screen, "SPECIAL ABILITY:", x + int(large_w * 0.09), y + int(large_h * 0.72), self.small_font, GOLD)
             lines = wrap_text(s.ability_desc, self.small_font, int(large_w * 0.82))
             for j, line in enumerate(lines):
-                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, WHITE)
+                draw_text(self.screen, line, x + int(large_w * 0.09), y + int(large_h * 0.78) + (j * int(SCREEN_HEIGHT * 0.022)), self.small_font, BLACK)
 
             self.btn_confirm = Button("START SEMESTER", SCREEN_WIDTH//2 - int(SCREEN_WIDTH * 0.08), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.12), int(SCREEN_WIDTH * 0.16), int(SCREEN_HEIGHT * 0.06), OU_CRIMSON)
             self.btn_confirm.draw(self.screen, self.font)
