@@ -324,8 +324,8 @@ class Game:
                 txt_surface = big_font.render(line, True, self.combat_text_color)
                 txt_surface.set_alpha(alpha)
                 
-                # Position above player, offset each line
-                text_x = int(SCREEN_WIDTH * 0.17) - txt_surface.get_width() // 1.9
+                # Position from left side of screen, offset each line
+                text_x = int(SCREEN_WIDTH * 0.026)
                 text_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.6) + self.combat_text_y_offset + (i * line_height)
                 
                 self.screen.blit(txt_surface, (text_x, text_y))
