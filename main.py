@@ -174,7 +174,7 @@ class Game:
                 "Model Underfitted. You fail ML.",
                 "The Clouds",
                 bossId=2,
-                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
+                sprite_folder=os.path.join(SPRITE_DIR, "dioch", "standard", "idle", "left"),
                 idle_frames=2
             ),
             Professor(
@@ -182,7 +182,7 @@ class Game:
                 "Compiling error... You fail Java 2.",
                 "Library Lawn",
                 bossId=3,
-                sprite_folder=os.path.join(SPRITE_DIR, "sridhar", "standard", "idle", "left"),
+                sprite_folder=os.path.join(SPRITE_DIR, "maiti", "standard", "idle", "left"),
                 idle_frames=2
             )
         ]
@@ -240,8 +240,10 @@ class Game:
                 door["rect"] = pygame.Rect(screen_x, door_y, self.door_w, self.door_h)
 
 
-        # 3. DRAW PLAYER (Centered on screen)
-        self.player.draw(self.screen, self.player_screen_x - 75, SCREEN_HEIGHT - 450)
+        # trying to fix the Cs Get Degrees error
+        player_draw_x = self.player_screen_x - int(SCREEN_WIDTH * 0.04)
+        player_draw_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.50)
+        self.player.draw(self.screen, player_draw_x, player_draw_y)
         if self.show_exit_prompt:
             overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 180))

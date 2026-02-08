@@ -130,22 +130,40 @@ class AnimatedEntity:
             if len(current_frames) > 0:
                 self.current_frame = (self.current_frame + 1) % len(current_frames)
             self.last_frame_time = now
+
     def update(self):
         self.update_animation()
+        
     def draw(self, screen, x, y):
         if not (self.freeze_last_frame and self.override_frames and 
-            self.override_index >= len(self.override_frames) - 1):
+                self.override_index >= len(self.override_frames) - 1):
             self.update_animation()
-
+        
         if self.override_frames:
+            # Safety check for override frames
+            if self.override_index >= len(self.override_frames):
+                self.override_index = len(self.override_frames) - 1
             frame = self.override_frames[self.override_index]
         else:
             current_dir_frames = self.all_frames[self.facing]
             current_frames = current_dir_frames.get(self.state, current_dir_frames[IDLE])
-            frame = current_frames[self.current_frame]
-
+            
+            # Safety check: ensure current_frames exists and has frames
+            if not current_frames:
+                current_frames = current_dir_frames[IDLE]
+            
+            # Safety check: ensure current_frame is within bounds
+            if self.current_frame >= len(current_frames):
+                self.current_frame = 0
+            
+            # Final safety check before accessing
+            if len(current_frames) == 0:
+                # Create a dummy frame if no frames exist
+                frame = self.all_frames[self.facing][IDLE][0] if self.all_frames[self.facing][IDLE] else pygame.Surface((64, 64))
+            else:
+                frame = current_frames[self.current_frame]
+        
         screen.blit(frame, (x, y))
-
 class Student(AnimatedEntity):
     def __init__(self, name, hp, attack_power, ability_desc, win_msg,
                  sprite_folder=None, idle_frames=2, action_frames=1,
