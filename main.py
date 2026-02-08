@@ -562,6 +562,10 @@ class Game:
         if not self.show_question:
             if self.btn_atk and self.btn_atk.is_clicked(mouse_pos):
                 dmg, msg, is_special = self.player.calculate_attack()
+                if is_special:
+                    self.sound.play_sfx(os.path.join(SFX_DIR, "critical_hit.wav"), volume=0.1)
+                else:
+                    self.sound.play_sfx(os.path.join(SFX_DIR, "punch_sound.wav"), volume=0.1)
                 self.show_combat_text(msg, GOLD if is_special else GRAY)
 
                 self.boss.hp -= dmg
@@ -641,8 +645,6 @@ class Game:
                         self.is_player_victory = False
                         self.sound.clear_music()  # Clear music after 2 seconds to allow win sound to play
                         self.sound.play_voice(os.path.join(SFX_DIR, f"lose_sound.wav"), volume=0.2)
-               
-
 
     def run(self):
         running = True
