@@ -1002,7 +1002,7 @@ class Game:
             )
             current_time = pygame.time.get_ticks()
             heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
-            is_locked = (current_time - getattr(self, 'battle_start_time', 0)) < 3000
+            is_locked = (current_time - getattr(self, 'battle_start_time', 0)) < 4500
             atk_color = (128, 128, 128) if is_locked else GOLD
             self.btn_atk = Button(
                 "ATTACK",
@@ -1128,6 +1128,9 @@ class Game:
 
                     if btn.text == correct_answer:
                         self.battle_log = "CORRECT! You dodged the grade deduction!"
+                        self.show_combat_text("DODGED!", (0,255,255))
+                        self.sound.play_sfx(os.path.join(SFX_DIR, "dodge.mp3"), volume=0.1)
+
                     else:
                         if self.player.name == "Cs Get Degrees" and random.random() < 0.25:
                             self.battle_log = "WRONG! But the curve saved you!"
