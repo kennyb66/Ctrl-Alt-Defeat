@@ -10,6 +10,7 @@ class SoundManager:
         self.voice_channel = pygame.mixer.Channel(0)
         self.sfx_channel   = pygame.mixer.Channel(1)
         self.music_channel = pygame.mixer.Channel(2)
+        self.sfx_channel = pygame.mixer.Channel(3)  # Added a separate channel for SFX to avoid conflicts with music
 
         # Base paths
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,6 +32,15 @@ class SoundManager:
 
         self.voice_channel.play(sound)
         
+    def play_sfx(self, file_path, volume=1.0):
+        if not os.path.exists(file_path):
+            print(f"[WARN] Missing SFX file: {file_path}")
+            return
+
+        sound = pygame.mixer.Sound(file_path)
+        sound.set_volume(volume)
+        self.sfx_channel.play(sound)
+        
     def play_music(self, file_path, volume=0.1, fade_ms=500):
         if not os.path.exists(file_path):
             print(f"[WARN] Missing music file: {file_path}")
@@ -47,8 +57,8 @@ class SoundManager:
 
         
     def clear_music(self, fade_ms=500):
-        if self.music_channel.get_busy():
-            self.music_channel.fadeout(fade_ms)
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.fadeout(fade_ms)
 
     # -------------------------
     # Random question voiceline
