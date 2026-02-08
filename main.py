@@ -97,7 +97,7 @@ class Game:
                 idle_frames=2
             ),
             Student(
-                "4.0 Medallion", 100, 20,
+                "4.0 Medallion", 400, 20,
                 "Special: 20% Critical Hit chance (The Curve) for 1.5x damage.",
                 "Academic Excellence!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
@@ -298,7 +298,7 @@ class Game:
 
         pygame.draw.rect(self.screen, OU_CRIMSON, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w, hp_bar_h))
         pygame.draw.rect(self.screen, GREEN, (SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.05), hp_bar_w * b_hp_ratio, hp_bar_h))
-        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.21), int(SCREEN_HEIGHT * 0.02), self.font)
+        draw_text(self.screen, f"{self.boss.name}: {self.boss.hp} HP", SCREEN_WIDTH - int(SCREEN_WIDTH * 0.25), int(SCREEN_HEIGHT * 0.02), self.font)
 
         # Control Box
         ui_rect = pygame.Rect(int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.18), SCREEN_WIDTH - int(SCREEN_WIDTH * 0.052), int(SCREEN_HEIGHT * 0.15))
@@ -325,7 +325,7 @@ class Game:
                 txt_surface.set_alpha(alpha)
                 
                 # Position above player, offset each line
-                text_x = int(SCREEN_WIDTH * 0.17) - txt_surface.get_width() // 2
+                text_x = int(SCREEN_WIDTH * 0.17) - txt_surface.get_width() // 1.9
                 text_y = SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.6) + self.combat_text_y_offset + (i * line_height)
                 
                 self.screen.blit(txt_surface, (text_x, text_y))
@@ -355,14 +355,14 @@ class Game:
             )
             self.answer_btns = []
             num_choices = len(self.current_q['choices'])
-            btn_width = int(SCREEN_WIDTH * 0.15)
+            btn_width = int(SCREEN_WIDTH * 0.16)
             btn_spacing = int(SCREEN_WIDTH * 0.015)
             total_width = (num_choices * btn_width) + ((num_choices - 1) * btn_spacing)
             start_x = (SCREEN_WIDTH - total_width) // 2
 
             for i, opt in enumerate(self.current_q['choices']):
                 x = start_x + (i * (btn_width + btn_spacing))
-                btn = Button(opt, x, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, int(SCREEN_HEIGHT * 0.055), OU_CRIMSON)
+                btn = Button(opt, x, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.11), btn_width, int(SCREEN_HEIGHT * 0.12), OU_CRIMSON)
                 btn.draw(self.screen, self.font)
                 self.answer_btns.append(btn)
         else:
@@ -370,9 +370,9 @@ class Game:
             btn_width = int(SCREEN_WIDTH * 0.12)
             btn_height = int(SCREEN_HEIGHT * 0.055)
             btn_spacing = int(SCREEN_WIDTH * 0.015)
-            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - (2 * btn_width + btn_spacing) - int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY)
+            self.btn_atk = Button("ATTACK", SCREEN_WIDTH - (2 * btn_width + btn_spacing) - int(SCREEN_WIDTH * 0.035), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY)
             heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - btn_width - int(SCREEN_WIDTH * 0.026), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY, disabled=heal_disabled)
+            self.btn_heal = Button("HEAL", SCREEN_WIDTH - btn_width - int(SCREEN_WIDTH * 0.035), SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.105), btn_width, btn_height, GRAY, disabled=heal_disabled)
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
