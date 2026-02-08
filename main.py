@@ -81,7 +81,7 @@ class Game:
             ),
             Student(
                 "TA God", 100, 18,
-                "Special: Healing restores 50% more HP (Lab Snacks).",
+                "Special: Healing restores twice as much HP (Lab Snacks).",
                 "The lab is yours now!",
                 sprite_folder=os.path.join(SPRITE_DIR, "kris", "standard", "idle", "right"),
                 idle_frames=2
@@ -90,7 +90,7 @@ class Game:
         
         self.profs = [
             Professor(
-                "Prof Sridhar", 150, 20,
+                "Prof Sridhar", 150, 35,
                 "Logic is not O(1). You fail Data Structures.",
                 "Top Floor Devon",
                 bossId=1,
@@ -100,7 +100,7 @@ class Game:
                 animation_speed=350
             ),
             Professor(
-                "Prof Maiti", 100, 15,
+                "Prof Maiti", 100, 35,
                 "Compiling error... You fail Java 2.",
                 "Library Lawn",
                 bossId=2,
@@ -108,7 +108,7 @@ class Game:
                 idle_frames=2
             ),
             Professor(
-                "Prof Diochnos", 200, 25,
+                "Prof Diochnos", 200, 35,
                 "Model Underfitted. You fail ML.",
                 "The Clouds",
                 bossId=3,
@@ -292,9 +292,9 @@ class Game:
                 self.answer_btns.append(btn)
         else:
             draw_text(self.screen, self.battle_log, 80, SCREEN_HEIGHT - 120, self.font)
-            heal_dis = self.player.hp >= self.player.max_hp
             self.btn_atk = Button("ATTACK", SCREEN_WIDTH - 480, SCREEN_HEIGHT - 105, 180, 50, GRAY)
-            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_dis)
+            heal_disabled = (self.player.numHeals <= 0) or (self.player.hp >= self.player.max_hp)
+            self.btn_heal = Button("HEAL", SCREEN_WIDTH - 280, SCREEN_HEIGHT - 105, 180, 50, GRAY, disabled=heal_disabled)
             self.btn_atk.draw(self.screen, self.font)
             self.btn_heal.draw(self.screen, self.font)
 
@@ -317,7 +317,7 @@ class Game:
                     self.current_q = self.q_manager.get_random_question(self.boss.bossId)
                     play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
 
-            elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos):
+            elif self.btn_heal and self.btn_heal.is_clicked(mouse_pos) and self.player.numHeals > 0:
                 amt, msg = self.player.get_heal_amount()
                 self.player.hp = min(self.player.max_hp, self.player.hp + amt)
               #  self.player.say(msg) # Player says they healed
@@ -327,6 +327,8 @@ class Game:
                 self.show_question = True
                 self.current_q = self.q_manager.get_random_question(self.boss.bossId)
                 play_random_voiceline(self.boss.bossId)  # Play a random voiceline for the boss when they ask a question
+                
+                self.player.numHeals -= 1 # Decrease the number of heals left
                 
         else:
             for btn in self.answer_btns:
