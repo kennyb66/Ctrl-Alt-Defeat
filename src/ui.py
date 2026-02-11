@@ -2,14 +2,12 @@ import pygame
 from src.constants import *
 
 def draw_text(screen, text, x, y, font, color=WHITE, center=False):
-    """Renders text to the screen with an optional centering toggle."""
     img = font.render(text, True, color)
     if center:
         x -= img.get_width() // 2
     screen.blit(img, (x, y))
 
 def wrap_text(text, font, max_width):
-    """Wraps text to fit within a specific width (useful for bubbles/cards)."""
     words = text.split(' ')
     lines = []
     current_line = []
@@ -31,11 +29,10 @@ class Button:
         self.base_color = base_color
         self.hover_color = hover_color
         self.disabled = disabled
-        self.rect = pygame.Rect(x, y, w, h)  # Will be updated in draw()
+        self.rect = pygame.Rect(x, y, w, h)  
         self.min_height = h
         
     def wrap_text(self, text, font, max_width):
-        """Wrap text to fit within max_width"""
         words = text.split(' ')
         lines = []
         current_line = []
@@ -55,23 +52,19 @@ class Button:
         return lines if lines else [text]
     
     def draw(self, screen, font):
-        # Wrap text and calculate height
         lines = self.wrap_text(self.text, font, self.w)
         line_height = font.get_height()
         padding = 10
         calculated_height = max(self.min_height, len(lines) * line_height + padding * 2)
 
-        # Center button vertically around base_y
         y = self.base_y - (calculated_height // 2)
 
-        # Update rect
         self.rect = pygame.Rect(self.rect.x, y, self.w, calculated_height)
 
         mouse_pos = pygame.mouse.get_pos()
 
-        # Determine color
         if self.disabled:
-            bg_color = (40, 40, 40)     # darker gray
+            bg_color = (40, 40, 40) # darker gray
             border_color = (90, 90, 90) # muted border
             txt_color = (160, 160, 160) # muted text
         elif self.rect.collidepoint(mouse_pos):
@@ -83,18 +76,24 @@ class Button:
             border_color = BLACK
             txt_color = BLACK
 
-        # Draw button (support transparent backgrounds)
         if isinstance(bg_color, (list, tuple)) and len(bg_color) == 4 and bg_color[3] == 0:
             pass
         elif isinstance(bg_color, (list, tuple)) and len(bg_color) == 4:
             bg_surface = pygame.Surface((self.rect.w, self.rect.h), pygame.SRCALPHA)
-            bg_surface.fill(bg_color)
+            
+            pygame.draw.rect(
+                bg_surface,
+                bg_color,
+                (0, 0, self.rect.w, self.rect.h),
+                border_radius=5
+            )
+
             screen.blit(bg_surface, (self.rect.x, self.rect.y))
+
         else:
             pygame.draw.rect(screen, bg_color, self.rect, border_radius=5)
         pygame.draw.rect(screen, border_color, self.rect, 2, border_radius=5)
 
-        # Draw text lines
         total_text_height = len(lines) * line_height
         start_y = self.rect.y + (self.rect.h - total_text_height) // 2
 
@@ -112,15 +111,12 @@ class Button:
 
 
 def draw_speech_bubble(screen, text, x, y, font, width=350, type = "boss"):
-    """Draws a speech bubble that scales based on the length of the text."""
     lines = wrap_text(text, font, width - 40)
     line_height = font.get_linesize()
     bubble_height = len(lines) * line_height + 40
     
-    # Position bubble above/left of the professor
     bubble_rect = pygame.Rect(x - width, y - bubble_height - 30, width, bubble_height)
     
-    # Draw bubble tail pointing to the boss sprite
     if type == "boss":
         pygame.draw.polygon(screen, WHITE, [
             (x - 40, y - 30), (x - 60, y - 30), (x - 20, y)
@@ -130,8 +126,6 @@ def draw_speech_bubble(screen, text, x, y, font, width=350, type = "boss"):
             (x + 40, y - 30), (x + 60, y - 30), (x + 20, y)
         ])
 
-    
-    # Draw bubble body
     pygame.draw.rect(screen, WHITE, bubble_rect, border_radius=15)
     pygame.draw.rect(screen, BLACK, bubble_rect, 3, border_radius=15)
     
