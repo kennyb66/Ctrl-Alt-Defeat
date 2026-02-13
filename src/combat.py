@@ -1,11 +1,11 @@
 import os
 import random
 import pygame
-from src.constants import GOLD, GRAY, IDLE
+from src.constants import GOLD, WHITE, GRAY, IDLE
 
 
 class CombatHandler:
-    def show_combat_text(self, game, text: str, color=GRAY):
+    def show_combat_text(self, game, text: str, color=WHITE):
         game.combat_text = text
         game.combat_text_color = color
         game.combat_text_timer = pygame.time.get_ticks() + 2000
@@ -29,7 +29,7 @@ class CombatHandler:
             else:
                 game.sound.play_sfx(os.path.join(game.sfx_dir, "punch_sound.wav"), volume=0.1)
 
-            self.show_combat_text(game, msg, GOLD if is_special else GRAY)
+            self.show_combat_text(game, msg, GOLD if is_special else WHITE)
 
             game.boss.hp -= dmg
             game.flash_timer = 5
