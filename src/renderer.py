@@ -100,12 +100,13 @@ class Renderer: #DRAW FCTS
         if (current_ticks % 2500) < 500:
             wiggle_x = math.sin(current_ticks * 0.05) * 6
 
-        btn_x = SCREEN_WIDTH // 2 - 125 + wiggle_x
+        btn_w = int(SCREEN_WIDTH * 0.16)
+        btn_x = SCREEN_WIDTH // 2 - btn_w // 2 + int(wiggle_x)
         game.btn_start = Button(
             "BEGIN SEMESTER",
             btn_x,
             SCREEN_HEIGHT // 2 + int(SCREEN_HEIGHT * 0.07),
-            int(SCREEN_WIDTH * 0.16),
+            btn_w,
             int(SCREEN_HEIGHT * 0.06),
             OU_CREAM,
         )
@@ -150,9 +151,9 @@ class Renderer: #DRAW FCTS
             for i, line in enumerate(instructions):
                 draw_text(
                     screen, line,
-                    SCREEN_WIDTH // 5 + int(SCREEN_WIDTH * 0.02),
+                    SCREEN_WIDTH // 2,
                     SCREEN_HEIGHT // 4 + int(SCREEN_HEIGHT * 0.2) + (i * int(SCREEN_HEIGHT * 0.04)),
-                    font, BLACK,
+                    font, BLACK, True,
                 )
             draw_text(screen, "(Click anywhere to close)", SCREEN_WIDTH // 2, SCREEN_HEIGHT * 0.7, font, BLACK, True)
 
@@ -173,7 +174,8 @@ class Renderer: #DRAW FCTS
         tx = SCREEN_WIDTH // 2
         ty = int(SCREEN_HEIGHT * 0.2)
         card_w, card_h = int(SCREEN_WIDTH * 0.18), int(SCREEN_HEIGHT * 0.45)
-        gap = (SCREEN_WIDTH - (3 * card_w)) // 4
+        total_cards_width = 3 * card_w
+        gap = int((SCREEN_WIDTH - total_cards_width) / 4)
         m_pos = pygame.mouse.get_pos()
 
         for ox, oy in [(-3, 0), (3, 0), (0, -3), (0, 3)]:
@@ -352,7 +354,7 @@ class Renderer: #DRAW FCTS
 
         boss = game.profs[game.selected_door["level"]]
         lines = f"OFFICE OF\n{boss.name.upper()}".split("\n")
-        current_y = 350
+        current_y = int(SCREEN_HEIGHT * 0.35)
         for line in lines:
             draw_text(screen, line, SCREEN_WIDTH // 2, current_y, title_font, BLACK, True)
             current_y += title_font.get_linesize()
@@ -361,9 +363,15 @@ class Renderer: #DRAW FCTS
         current_ticks = pygame.time.get_ticks()
         wiggle_x = math.sin(current_ticks * 0.05) * 6 if (current_ticks % 2500) < 500 else 0
 
-        confirm_x = SCREEN_WIDTH // 2 - 225 + wiggle_x
-        game.btn_confirm = Button("CHALLENGE", confirm_x, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
-        game.btn_back = Button("BACK", SCREEN_WIDTH // 2 + 10, SCREEN_HEIGHT - 150, 200, 60, OU_CREAM)
+        btn_w = int(SCREEN_WIDTH * 0.13)
+        btn_h = int(SCREEN_HEIGHT * 0.08)
+        gap = int(SCREEN_WIDTH * 0.01)
+        total_w = btn_w * 2 + gap
+        start_x = (SCREEN_WIDTH - total_w) // 2
+        
+        confirm_x = start_x + int(wiggle_x)
+        game.btn_confirm = Button("CHALLENGE", confirm_x, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.16), btn_w, btn_h, OU_CREAM)
+        game.btn_back = Button("BACK", start_x + btn_w + gap, SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.16), btn_w, btn_h, OU_CREAM)
         game.btn_confirm.draw(screen, font)
         game.btn_back.draw(screen, font)
 
@@ -486,7 +494,7 @@ class Renderer: #DRAW FCTS
                 for dx, dy in [(-2, -2), (0, -2), (2, -2),
                                (-2, 0), (2, 0),
                                (-2, 2), (0, 2), (2, 2)]:
-                    outline = big_font.render(line, True, BLACK) #wat
+                    outline = big_font.render(line, True, BLACK)
                     outline.set_alpha(alpha)
                     screen.blit(outline, (tx + dx, ty + dy))
                 txt = big_font.render(line, True, game.combat_text_color)
