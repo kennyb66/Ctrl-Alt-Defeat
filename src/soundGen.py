@@ -8,17 +8,14 @@ class SoundManager:
 
         # Dedicated channels
         self.voice_channel = pygame.mixer.Channel(0)
-        self.sfx_channel   = pygame.mixer.Channel(1)
+        self.sfx_channel = pygame.mixer.Channel(1)
         self.music_channel = pygame.mixer.Channel(2)
-        self.sfx_channel = pygame.mixer.Channel(3)  # Added a separate channel for SFX to avoid conflicts with music
+        self.sfx_channel = pygame.mixer.Channel(3) # Added a separate channel for SFX to avoid conflicts with music
 
         # Base paths
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.audio_dir = os.path.join(base_dir, "assets", "audio")
 
-    # -------------------------
-    # Core voice playback
-    # -------------------------
     def play_voice(self, file_path, volume=1.0, fade_ms=150):
         if not os.path.exists(file_path):
             print(f"[WARN] Missing audio file: {file_path}")
@@ -60,9 +57,6 @@ class SoundManager:
         if pygame.mixer.music.get_busy():
             pygame.mixer.music.fadeout(fade_ms)
 
-    # -------------------------
-    # Random question voiceline
-    # -------------------------
     def play_random_voiceline(self, boss_id, volume):
         folder = os.path.join(self.audio_dir, f"Boss{boss_id}")
 
